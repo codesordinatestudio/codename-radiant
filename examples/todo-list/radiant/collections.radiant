@@ -1,0 +1,17 @@
+collection users {
+  auth: true;
+  fields: {
+    name: text,
+    role: ["admin", "user"] @default("user")
+  };
+}
+
+
+
+collection todos {
+  fields: {
+    title: text,
+    completed: boolean @default(false),
+    author: link("users")
+  };
+}

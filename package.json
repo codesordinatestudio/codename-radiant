@@ -1,0 +1,19 @@
+{
+  "name": "radiant-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^7.0.1-rc",
+    "@types/node": "^26.0.1",
+    "@types/bun": "latest"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "projectCodename": "Radiant",
+  "description": "A universal DSL to AST runtime-agnostic backend framework."
+}

@@ -1,0 +1,88 @@
+// radiant/config.radiant
+
+config {
+  core: {
+    api: {
+      prefix: "/api",
+      maxBodyBytes: 1048576,
+      trustedProxies: ["127.0.0.1"]
+    },
+    openapi: {
+      enabled: true,
+      path: "/api/docs",
+      title: "Todo API",
+      version: "1.0.0",
+      scalar: {
+        theme: "default",
+        layout: "modern"
+      }
+    },
+    upload: {
+      dir: "./uploads",
+      maxSize: "10MB",
+      allowedTypes: ["image/jpeg", "image/png"]
+    }
+  };
+
+  adminUI: {
+    enabled: true,
+    user: "users"
+  };
+
+  security: {
+    auth: {
+      strategies: ["jwt", "session"],
+      jwt: {
+        accessTokenExpiry: "15m",
+        refreshTokenExpiry: "7d",
+        cookies: {
+          enabled: true
+        }
+      },
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireNumber: true
+      },
+      lockout: {
+        maxAttempts: 5,
+        durationMinutes: 15
+      }
+    },
+    cors: {
+      origin: ["http://localhost:3000"],
+      credentials: true
+    },
+    rateLimit: {
+      write: {
+        max: 100,
+        window: "15m"
+      },
+      login: {
+        max: 5,
+        window: "15m"
+      }
+    },
+    headers: {
+      enabled: true
+    },
+    secrets: {
+      enabled: true
+    },
+    audit: {
+      enabled: false
+    }
+  };
+
+  monitoring: {
+    healthCheck: {
+      enabled: true,
+      path: "/health",
+      requiresAuth: false
+    },
+    requestId: {
+      enabled: true
+    }
+  };
+}
+

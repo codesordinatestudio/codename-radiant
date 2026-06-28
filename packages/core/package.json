@@ -1,0 +1,10 @@
+{
+  "name": "@radiant/core",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "bun run build",
+    "dev": "bun run dev"
+  },
+  "dependencies": {}
+}

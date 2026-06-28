@@ -1,0 +1,48 @@
+{
+  "name": "vscode-radiant",
+  "displayName": "Radiant DSL",
+  "description": "Language support for .radiant files",
+  "version": "0.0.1",
+  "publisher": "radiant",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "radiant",
+        "aliases": [
+          "Radiant",
+          "radiant"
+        ],
+        "extensions": [
+          ".radiant"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "radiant",
+        "scopeName": "source.radiant",
+        "path": "./syntaxes/radiant.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "bun build ./src/extension.ts --outdir ./dist --target node --external vscode && bun build ../cli/src/lsp/server.ts --outfile ./dist/server.js --target node",
+    "dev": "bun build ./src/extension.ts --outdir ./dist --target node --external vscode --watch & bun build ../cli/src/lsp/server.ts --outfile ./dist/server.js --target node --watch"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "@types/vscode": "^1.125.0",
+    "typescript": "^7.0.1-rc"
+  }
+}
