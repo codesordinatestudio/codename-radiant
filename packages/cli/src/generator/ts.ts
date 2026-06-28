@@ -27,20 +27,23 @@ export function generateTypeScript(schema: any): string {
       const isOptionalInCreate = (field.optional || field.default !== undefined || field.name === 'id') ? '?' : '';
       createFields += `  ${field.name}${isOptionalInCreate}: ${tsType};\n`;
 
-      // Where input
-      if (field.type === 'link') {
-        whereFields += `  ${field.name}?: { id?: string };\n`;
-      } else if (field.type === 'string' || field.type === 'email' || field.type === 'text') {
-        whereFields += `  ${field.name}?: { equals?: string; contains?: string };\n`;
+      // Where clause
+      if (field.type === 'string' || field.type === 'email' || field.type === 'text') {
+        whereFields += `  ${field.name}?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };\n`;
+      } else if (field.name === 'id' || field.type === 'link') {
+        whereFields += `  ${field.name}?: { eq?: string; neq?: string; in?: string[]; nin?: string[]; exists?: boolean };\n`;
       } else {
-        whereFields += `  ${field.name}?: { equals?: ${tsType} };\n`;
+        whereFields += `  ${field.name}?: { eq?: ${tsType}; neq?: ${tsType}; in?: Array<${tsType}>; nin?: Array<${tsType}>; exists?: boolean };\n`;
       }
     }
+
+    whereFields += `  and?: ${className}WhereClause[];\n`;
+    whereFields += `  or?: ${className}WhereClause[];\n`;
 
     models.push(`export interface ${className} {\n${modelFields}}\n`);
     creates.push(`export interface ${className}Create {\n${createFields}}\n`);
     creates.push(`export type ${className}Update = Partial<${className}Create>;\n`);
-    wheres.push(`export interface ${className}WhereInput {\n${whereFields}}\n`);
+    wheres.push(`export interface ${className}WhereClause {\n${whereFields}}\n`);
     
     registry.push(`  ${col.slug}: ${className};`);
   }

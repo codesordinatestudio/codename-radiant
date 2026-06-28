@@ -71,7 +71,16 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     }
     const projectRoot = require('path').dirname(dir);
     const outputPath = resolve(projectRoot, 'schema.json');
-    writeFileSync(outputPath, JSON.stringify(finalSchema, null, 2), 'utf-8');
+    
+    // Strip internal compiler metadata out of the final JSON schema
+    const cleanJson = JSON.stringify(finalSchema, (key, value) => {
+      if (key === 'targetToken' || key === 'token' || key === 'uri') {
+        return undefined;
+      }
+      return value;
+    }, 2);
+    
+    writeFileSync(outputPath, cleanJson, 'utf-8');
     console.log(`Successfully built ${outputPath}`);
 
     if (options.runtime === 'ts' || !options.runtime) {

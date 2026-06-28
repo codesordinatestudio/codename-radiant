@@ -6,21 +6,6 @@ config {
       prefix: "/api",
       maxBodyBytes: 1048576,
       trustedProxies: ["127.0.0.1"]
-    },
-    openapi: {
-      enabled: true,
-      path: "/api/docs",
-      title: "Todo API",
-      version: "1.0.0",
-      scalar: {
-        theme: "default",
-        layout: "modern"
-      }
-    },
-    upload: {
-      dir: "./uploads",
-      maxSize: "10MB",
-      allowedTypes: ["image/jpeg", "image/png"]
     }
   };
 

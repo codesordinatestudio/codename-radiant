@@ -2,6 +2,9 @@
   "name": "@radiant/cli",
   "version": "0.0.1",
   "private": true,
+  "bin": {
+    "radiant": "./bin/radiant"
+  },
   "scripts": {
     "build": "bun build ./src/index.ts --compile --outfile bin/radiant",
     "dev": "bun run src/index.ts"

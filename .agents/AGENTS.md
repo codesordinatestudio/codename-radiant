@@ -19,8 +19,8 @@
 
 This is a Bun monorepo powered by Turborepo with packages, plugins, docs, and examples:
 
-- `packages/bun` - The unified package. Contains the Bun runtime, CLI commands, and exports the facade for the framework.
-- `packages/core` - shared types, runtime contracts, adapters, cache, auth, utilities.
+- `runtime/bun` - The unified package. Contains the Bun TS runtime, shared types, runtime contracts, adapters, cache, auth, and utilities.
+- `runtime/go` - (Future) The Go runtime.
 - `packages/create-radiant` - project generator.
 - `packages/cli` - The DSL Parser and CLI Engine.
 - `plugins/*` - first-party plugin packages.
@@ -53,3 +53,4 @@ cd plugins/postgres && bun run build
 - Add or update focused tests when changing shared behavior, runtime behavior, or plugin contracts.
 
 - **Single Source of Truth Rule:** You must always look at the `docs/radiant_lifecycle.md` file before you make any change at all because that file shows a proper flow and we've already come up with some syntax that we need done. So going forward, you don't do anything again without looking at that file. Every question I ask, every change you have to make, every alter you have to alter the codebase, you must refer to that file as a single source of truth before anything else.
+- **Port First Rule (TypeScript runtime):** Everything you implement going forward for the TypeScript Runtime MUST first be checked against `Lucent Bun`. If Lucent Bun already implemented it, you must COPY it and ADAPT it to fit the new Radiant architecture, rather than retyping it from scratch. This ensures we move fast and close out the TypeScript side quickly.

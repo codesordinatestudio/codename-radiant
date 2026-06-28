@@ -474,3 +474,28 @@ Phase 2 focuses on turning the abstract `schema.json` into a strictly-typed deve
    - When a user saves a `.radiant` file or presses Format, the LSP will traverse the CST/AST and output perfectly indented code.
 
 **Goal for Phase 2:** A developer can run `radiant dev --runtime ts`, modify their schema, and instantly see the generated `radiant-types.ts` update, while also having their `.radiant` files automatically formatted on save.
+
+---
+
+## 7. Phase 3 Implementation Guide: The Radiant TypeScript Runtime (Bun)
+
+Phase 3 transitions out of the CLI tooling and focuses entirely on building the actual runtime engine that executes the user's business logic. This is the package that users will import into their `server.ts` file (`@codesordinatestudio/radiant/bun`).
+
+### Core Objectives for Phase 3:
+
+1. **The `RadiantRuntime` Class**
+   - Build the core class that accepts the `schema.json` AST and a configuration object (database adapters, plugins).
+   - This class is responsible for bootstrapping the internal HTTP server (using Bun's native `Bun.serve` or a lightweight router).
+
+2. **Access Control & Hooks System**
+   - Implement the `.access()` method to allow developers to securely define who can read/write to collections using the `AuthUser` context.
+   - Implement the lifecycle hooks (`.hooks.beforeCreate`, `.hooks.afterCreate`, etc.) so developers can inject standard TS business logic into database operations.
+
+3. **Database Adapter Interface**
+   - Design the abstract contract for database plugins (like `@codesordinatestudio/radiant-plugin-postgres`).
+   - The runtime should take generic JSON operations (e.g., `where: { name: { eq: "John" } }`) and pass them to the underlying DB plugin securely.
+
+4. **Custom Endpoints & Routing**
+   - Expose the `.router` property so developers can attach completely custom REST/HTTP endpoints that bypass the auto-generated CRUD routes.
+
+**Goal for Phase 3:** A developer can write `server.ts`, initialize `new RadiantRuntime(schema)`, attach some access rules and hooks, and run `bun run server.ts` to boot a fully functioning, TS-native CRUD API on port 3000.
