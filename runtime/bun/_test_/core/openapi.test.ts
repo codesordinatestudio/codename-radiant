@@ -41,7 +41,16 @@ describe("core/openapi", () => {
         security: {},
         monitoring: {}
       },
-      collections: [mockCollection]
+      collections: [mockCollection],
+      globals: [
+        {
+          slug: "website",
+          fields: [
+            { name: "title", type: "string", optional: false },
+            { name: "description", type: "string", optional: true }
+          ]
+        }
+      ]
     };
 
     test("generates basic OpenAPI document structure", () => {
@@ -124,6 +133,30 @@ describe("core/openapi", () => {
       expect(registerSchema.required).toContain("email");
       expect(registerSchema.required).toContain("password");
       expect(registerSchema.properties.level.type).toBe("number");
+    });
+
+    test("generates endpoints and schemas for globals", () => {
+      const spec = generateOpenAPISpec(mockAst, "http://localhost:3000", "/api");
+      const schemas = spec.components.schemas;
+      const paths = spec.paths;
+
+      // Check schemas
+      expect(schemas.WebsiteGlobal).toBeDefined();
+      expect(schemas.WebsiteGlobalInput).toBeDefined();
+
+      const websiteProps = schemas.WebsiteGlobal.properties;
+      expect(websiteProps.title.type).toBe("string");
+      expect(websiteProps.description.type).toBe("string");
+
+      // Check paths
+      const globalPath = "/api/globals/website";
+      expect(paths[globalPath]).toBeDefined();
+      expect(paths[globalPath].get).toBeDefined();
+      expect(paths[globalPath].post).toBeDefined();
+      expect(paths[globalPath].patch).toBeDefined();
+      
+      // Global endpoints should use the correct tags
+      expect(paths[globalPath].get.tags).toEqual(["Globals"]);
     });
   });
 });

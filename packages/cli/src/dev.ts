@@ -2,7 +2,7 @@ import chokidar from 'chokidar';
 import { resolve } from 'path';
 import pc from 'picocolors';
 import * as p from '@clack/prompts';
-import { buildCommand } from './cli';
+import { generateCompilerOutput } from './cli';
 import { scaffoldTsProject } from './scaffolds/ts';
 
 export async function devCommand(options: { runtime?: string, dir?: string }) {
@@ -38,7 +38,7 @@ export async function devCommand(options: { runtime?: string, dir?: string }) {
   console.log(`\n${pc.bgCyan(pc.black(' RADIANT '))} ${pc.cyan('Starting dev watcher on')} ${pc.dim(dir)}`);
   
   // Run an initial build
-  buildCommand({ runtime, dir, isDev: true });
+  generateCompilerOutput({ runtime, dir, isDev: true });
 
   const watcher = chokidar.watch(dir, {
     ignored: [/(^|[\/\\])\../, /runtime[\/\\]schema\.json$/, /runtime\.ts$/, /radiant-types\.ts$/], // ignore dotfiles and generated outputs
@@ -51,7 +51,7 @@ export async function devCommand(options: { runtime?: string, dir?: string }) {
     timeout = setTimeout(() => {
       const time = new Date().toLocaleTimeString();
       console.log(`\n${pc.dim(time)} ${pc.blue('↻')} File ${pc.bold(path)} has been ${type}. Rebuilding...`);
-      buildCommand({ runtime, dir, isDev: true });
+      generateCompilerOutput({ runtime, dir, isDev: true });
     }, 100);
   };
 

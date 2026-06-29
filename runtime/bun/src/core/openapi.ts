@@ -356,6 +356,70 @@ export function generateOpenAPISpec(schema: RadiantAST, serverUrl: string, prefi
     }
   }
 
+  if (schema.globals) {
+    for (const glob of schema.globals) {
+      const slug = glob.slug;
+      const tag = "Globals";
+      const schemaRefName = slug.charAt(0).toUpperCase() + slug.slice(1) + "Global";
+
+      components.schemas[schemaRefName] = buildCollectionSchema(glob);
+      components.schemas[`${schemaRefName}Input`] = buildCollectionSchema(glob, true);
+
+      const basePath = `${prefix}/globals/${slug}`;
+
+      paths[basePath] = {
+        get: {
+          tags: [tag],
+          summary: `Get global configuration: ${slug}`,
+          responses: {
+            "200": {
+              description: "Global document",
+              content: {
+                "application/json": { schema: { $ref: `#/components/schemas/${schemaRefName}` } }
+              }
+            }
+          }
+        },
+        post: {
+          tags: [tag],
+          summary: `Create or Update global configuration: ${slug}`,
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: `#/components/schemas/${schemaRefName}Input` } }
+            }
+          },
+          responses: {
+            "200": {
+              description: "Global document updated",
+              content: {
+                "application/json": { schema: { $ref: `#/components/schemas/${schemaRefName}` } }
+              }
+            }
+          }
+        },
+        patch: {
+          tags: [tag],
+          summary: `Patch global configuration: ${slug}`,
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: `#/components/schemas/${schemaRefName}Input` } }
+            }
+          },
+          responses: {
+            "200": {
+              description: "Global document updated",
+              content: {
+                "application/json": { schema: { $ref: `#/components/schemas/${schemaRefName}` } }
+              }
+            }
+          }
+        }
+      };
+    }
+  }
+
   return {
     openapi: "3.0.3",
     info: { title: "Radiant API", version: "1.0.0" },

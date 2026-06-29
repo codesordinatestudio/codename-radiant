@@ -29,7 +29,7 @@ function findRadiantFiles(dir: string): string[] {
   return results;
 }
 
-export function buildCommand(options: { runtime?: string, dir?: string, isDev?: boolean }) {
+export function generateCompilerOutput(options: { runtime?: string, dir?: string, isDev?: boolean }) {
   const dir = options.dir || resolve(process.cwd(), 'radiant');
   const files = findRadiantFiles(dir);
 

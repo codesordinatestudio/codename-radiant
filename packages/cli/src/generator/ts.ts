@@ -11,7 +11,9 @@ export function generateTypeScriptTypes(schema: any): string {
   const registry: string[] = [];
   const registryPopulated: string[] = [];
 
-  for (const col of schema.collections || []) {
+  const allEntities = [...(schema.collections || []), ...(schema.globals || [])];
+
+  for (const col of allEntities) {
     const className = col.slug.charAt(0).toUpperCase() + col.slug.slice(1);
     
     // 1. Core Model

@@ -591,7 +591,24 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
       websocket: RadiantWebsocket.handlers(),
     });
 
-    console.log(`🚀 Radiant Engine started on http://localhost:${server.port}`);
+    const r = "\x1b[38;2;34;211;238m"; // cyan-400
+    const w = "\x1b[38;2;255;255;255m"; // white
+    const d = "\x1b[38;2;161;161;170m"; // gray-400
+    const b = "\x1b[1m"; // bold
+    const reset = "\x1b[0m";
+
+    const banner = `
+${r}${b}  _____           _ _             _   ${reset}
+${r}${b} |  __ \\         | (_)           | |  ${reset}
+${r}${b} | |__) |__ _  __| |_  __ _ _ __ | |_ ${reset}
+${r}${b} |  _  // _\` |/ _\` | |/ _\` | '_ \\| __|${reset}
+${r}${b} | | \\ \\ (_| | (_| | | (_| | | | | |_ ${reset}
+${r}${b} |_|  \\_\\__,_|\\__,_|_|\\__,_|_| |_|\\__|${reset}
+ 
+ ${w}✨ Radiant Engine Online${reset}
+ ${d}🌍 http://localhost:${server.port}${reset}
+`;
+    console.log(banner);
     return server;
   }
 }

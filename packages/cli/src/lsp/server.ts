@@ -245,6 +245,7 @@ connection.onCompletion((params) => {
   const structuralTypes = [
     { label: 'config', kind: 14, detail: 'Global configuration block', documentation: 'Root level block for configuration' },
     { label: 'output', kind: 14, detail: 'Output directory', documentation: 'Where to put generated files (e.g. "../src")' },
+    { label: 'globals', kind: 14, detail: 'Define a singleton document', documentation: 'Root level block for defining a global document' },
     { label: 'collection', kind: 14, detail: 'Define a database collection', documentation: 'Root level block for defining a collection' },
     { label: 'core', kind: 14, detail: 'Core framework settings', documentation: 'Allowed in config {}' },
     { label: 'api', kind: 14, detail: 'API settings', documentation: 'Allowed in core {}' },
