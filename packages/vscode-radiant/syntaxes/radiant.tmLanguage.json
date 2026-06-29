@@ -31,7 +31,7 @@
       "patterns": [
         {
           "name": "keyword.control.radiant",
-          "match": "\\b(config|core|adminUI|security|monitoring|collection|fields|auth|realtime|cache)\\b"
+          "match": "\\b(config|core|adminUI|security|monitoring|collection|globals|fields|auth|realtime|cache)\\b"
         },
         {
           "name": "constant.language.boolean.radiant",

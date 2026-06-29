@@ -18,6 +18,10 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     if (ctx.collectionBlock) {
       blocks.push(...ctx.collectionBlock.map((b: any) => this.visit(b)));
     }
+
+    if (ctx.globalBlock) {
+      blocks.push(...ctx.globalBlock.map((b: any) => this.visit(b)));
+    }
     return { type: 'RadiantFile', blocks };
   }
 
@@ -40,6 +44,15 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     };
   }
 
+  globalBlock(ctx: any) {
+    return {
+      type: 'global',
+      name: ctx.Identifier[0].image,
+      nameToken: ctx.Identifier[0],
+      body: this.visit(ctx.objectBody[0])
+    };
+  }
+
   objectBody(ctx: any) {
     const properties: any[] = [];
     if (ctx.property) {
@@ -55,6 +68,7 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     if (ctx.Config) return ctx.Config[0];
 
     if (ctx.Collection) return ctx.Collection[0];
+    if (ctx.Global) return ctx.Global[0];
     if (ctx.Fields) return ctx.Fields[0];
     return null;
   }

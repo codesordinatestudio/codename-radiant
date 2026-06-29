@@ -14,7 +14,8 @@ export class RadiantParser extends CstParser {
     this.MANY(() => {
       this.OR([
         { ALT: () => this.SUBRULE(this.configBlock) },
-        { ALT: () => this.SUBRULE(this.collectionBlock) }
+        { ALT: () => this.SUBRULE(this.collectionBlock) },
+        { ALT: () => this.SUBRULE(this.globalBlock) }
       ]);
     });
   });
@@ -36,6 +37,14 @@ export class RadiantParser extends CstParser {
     this.CONSUME(L.RCurly);
   });
 
+  public globalBlock = this.RULE('globalBlock', () => {
+    this.CONSUME(L.Global);
+    this.CONSUME(L.Identifier);
+    this.CONSUME(L.LCurly);
+    this.SUBRULE(this.objectBody);
+    this.CONSUME(L.RCurly);
+  });
+
   public objectBody = this.RULE('objectBody', () => {
     this.MANY(() => {
       this.SUBRULE(this.property);
@@ -47,6 +56,7 @@ export class RadiantParser extends CstParser {
       { ALT: () => this.CONSUME(L.Identifier) },
       { ALT: () => this.CONSUME(L.Config) },
       { ALT: () => this.CONSUME(L.Collection) },
+      { ALT: () => this.CONSUME(L.Global) },
       { ALT: () => this.CONSUME(L.Fields) }
     ]);
   });

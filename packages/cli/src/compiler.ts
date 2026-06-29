@@ -21,10 +21,12 @@ const ALLOWED_MIGRATE = new Set(['dropOrphan']);
 
 export function compile(rawAsts: any[]): { schema: any, errors: SemanticError[] } {
   const schema: any = {
-    collections: []
+    collections: [],
+    globals: []
   };
   const errors: SemanticError[] = [];
   const seenCollections = new Map<string, IToken>();
+  const seenGlobals = new Map<string, IToken>();
 
   for (const ast of rawAsts) {
     if (!ast || !ast.blocks) continue;
@@ -115,6 +117,33 @@ export function compile(rawAsts: any[]): { schema: any, errors: SemanticError[] 
           }
         });
         schema.collections.push(col);
+      } else if (block.type === 'global') {
+        if (seenGlobals.has(block.name)) {
+           errors.push(new SemanticError(`Duplicate global name '${block.name}' defined.`, block.nameToken, ast.uri));
+        } else {
+           seenGlobals.set(block.name, block.nameToken);
+        }
+
+        const glob: any = {
+          slug: block.name,
+          uri: ast.uri,
+          fields: []
+        };
+        block.body.forEach((prop: any) => {
+          if (!ALLOWED_COLLECTION.has(prop.name)) {
+             errors.push(new SemanticError(`Unknown property '${prop.name}' in global block.`, prop.nameToken, ast.uri));
+          }
+          if (prop.name === 'fields') {
+             if (prop.value && prop.value.type === 'object') {
+                prop.value.properties.forEach((field: any) => {
+                   glob.fields.push(compileField(field));
+                });
+             }
+          } else {
+             glob[prop.name] = compileValue(prop.value);
+          }
+        });
+        schema.globals.push(glob);
       }
     }
   }
@@ -141,6 +170,26 @@ export function compile(rawAsts: any[]): { schema: any, errors: SemanticError[] 
       if (field.type === 'select') {
         if (!field.options || field.options.length === 0) {
            errors.push(new SemanticError(`Validation Error: 'select' requires at least one option. Example: select("draft", "published")`, field.typeToken || field.nameToken, col.uri));
+        }
+      }
+    }
+  }
+
+  for (const glob of schema.globals) {
+    for (const field of glob.fields) {
+      if (!ALLOWED_FIELD_TYPES.has(field.type)) {
+         errors.push(new SemanticError(`Validation Error: Unknown field type '${field.type}' in global '${glob.slug}'.`, field.typeToken || field.nameToken, glob.uri));
+      }
+
+      if (field.type === 'relationship') {
+        if (!seenCollections.has(field.target)) {
+           errors.push(new SemanticError(`Validation Error: Global '${glob.slug}' relates to a non-existent collection '${field.target}'.`, field.targetToken, glob.uri));
+        }
+      }
+
+      if (field.type === 'select') {
+        if (!field.options || field.options.length === 0) {
+           errors.push(new SemanticError(`Validation Error: 'select' requires at least one option. Example: select("draft", "published")`, field.typeToken || field.nameToken, glob.uri));
         }
       }
     }

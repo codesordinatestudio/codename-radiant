@@ -384,6 +384,49 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         return new Response(JSON.stringify({ deleted: true }), { headers: { 'Content-Type': 'application/json' } });
       });
     }
+
+    if (this.schema.globals) {
+      for (const glob of this.schema.globals) {
+        const basePath = `${prefix}/globals/${glob.slug}`;
+
+        // GET Global
+        this.router.get(basePath, async (ctx) => {
+          try {
+            await this.checkAccess(glob.slug as any, "read", ctx);
+            const data = await this.adapter.findById('radiant_globals', glob.slug);
+            return new Response(JSON.stringify(data || {}), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          } catch (e: any) {
+            return new Response(JSON.stringify({ error: e.message }), { status: e.status || 500, headers: { 'Content-Type': 'application/json' } });
+          }
+        });
+
+        // POST / PATCH Global
+        const updateHandler = async (ctx: any) => {
+          try {
+            await this.checkAccess(glob.slug as any, "update", ctx);
+            let body = await ctx.request.json();
+            body = await this.runBeforeHooks(glob.slug as any, "Update", ctx, body);
+            
+            const existing = await this.adapter.findById('radiant_globals', glob.slug);
+            
+            let result;
+            if (existing) {
+              result = await this.adapter.update('radiant_globals', glob.slug, body);
+            } else {
+              result = await this.adapter.create('radiant_globals', { id: glob.slug, ...body });
+            }
+            
+            await this.runAfterHooks(glob.slug as any, "Update", ctx, result);
+            return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          } catch (e: any) {
+            return new Response(JSON.stringify({ error: e.message }), { status: e.status || 500, headers: { 'Content-Type': 'application/json' } });
+          }
+        };
+
+        this.router.post(basePath, updateHandler);
+        this.router.patch(basePath, updateHandler);
+      }
+    }
   }
 
   
@@ -493,11 +536,39 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   public async fetch(req: Request): Promise<Response> {
+    let ctx: RadiantRequestContext | undefined;
     try {
-      const ctx = await this.getContext(req);
-      const res = await this.router.handle(req, undefined, ctx.user, this);
-      return res || new Response("Not found", { status: 404 });
+      ctx = await this.getContext(req);
+      
+      // Run beforeRequest hooks
+      for (const plugin of this.plugins) {
+        if (plugin.beforeRequest) {
+          await plugin.beforeRequest(ctx);
+        }
+      }
+
+      let res = await this.router.handle(req, undefined, ctx.user, this);
+      res = res || new Response("Not found", { status: 404 });
+
+      // Run afterRequest hooks
+      for (const plugin of this.plugins) {
+        if (plugin.afterRequest) {
+          await plugin.afterRequest(ctx, res);
+        }
+      }
+
+      return res;
     } catch (err: any) {
+      if (!ctx) ctx = { request: req, user: null, radiant: this } as RadiantRequestContext;
+      
+      // Run onError hooks
+      for (const plugin of this.plugins) {
+        if (plugin.onError) {
+          const customRes = await plugin.onError(ctx, err);
+          if (customRes instanceof Response) return customRes;
+        }
+      }
+      
       return new Response(JSON.stringify({ error: err.message }), { status: err.status || 500 });
     }
   }

@@ -1,5 +1,8 @@
+import type { RadiantRequestContext } from "../main/access";
+
 export interface RadiantAST {
   collections: CollectionConfig[];
+  globals?: CollectionConfig[];
   core?: {
     api?: {
       prefix?: string;
@@ -105,5 +108,8 @@ export interface CacheStore {
 
 export interface RadiantPlugin {
   name: string;
-  onInit: (app: any) => void | Promise<void>;
+  onInit?: (app: any) => void | Promise<void>;
+  beforeRequest?: (ctx: RadiantRequestContext) => void | Promise<void>;
+  afterRequest?: (ctx: RadiantRequestContext, response: Response) => void | Promise<void>;
+  onError?: (ctx: RadiantRequestContext, error: any) => Response | void | Promise<Response | void>;
 }

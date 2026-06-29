@@ -60,6 +60,22 @@ collection users {
 ```
 
 ```typescript
+// radiant/globals.radiant
+
+// Globals are singleton configuration documents (e.g. Site Settings).
+global website {
+  // Access control and other settings
+  auth: true;
+
+  // Fields are required just like collections
+  fields: {
+    heroTitle: text;
+    maintenanceMode: boolean @default(false);
+  }
+}
+```
+
+```typescript
 // radiant/posts.collection.radiant
 
 collection posts {
@@ -228,10 +244,22 @@ app.hooks.beforeCreate("users", async (ctx) => {
   // Type-safe! ctx.data knows it has 'email' and 'name'
 });
 
-// 3. Attach a custom endpoint
+// 3. Attach Global Hooks (Nice-to-have / Plugin System)
+// Global hooks act as universal middleware across the entire runtime lifecycle
+app.plugins.push({
+  name: "global-logger",
+  beforeRequest: async (ctx) => {
+    console.log(`[Global] Incoming request to ${ctx.request.url}`);
+  },
+  onError: async (ctx, err) => {
+    console.error(`[Global Error]`, err);
+  }
+});
+
+// 4. Attach a custom endpoint
 app.router.get("/custom", () => "Hello World");
 
-// 4. Start the server!
+// 5. Start the server!
 app.start({ port: 3000 });
 ```
 
@@ -321,7 +349,27 @@ app.hooks.afterCreate("users", async (ctx) => {
 });
 ```
 
-### Approach B: Framework Plugins (Dependency Injection)
+### Approach B: Global Hooks & Middleware
+While collection hooks trigger on specific database events, **Global Hooks** intercept the entire engine's lifecycle. They are registered via the Plugin system and are useful for global rate-limiting, custom authentication, universal request logging, or catching unhandled errors.
+
+```typescript
+const myGlobalMiddleware = {
+  name: "my-middleware",
+  onInit: (app) => console.log("Server booting up!"),
+  beforeRequest: async (ctx) => {
+    // Intercept every single HTTP request
+    if (ctx.request.headers.get("X-Ban-List")) throw new Error("Banned");
+  },
+  afterRequest: async (ctx, response) => {
+    // Audit or modify the response globally
+    response.headers.set("X-Powered-By", "Radiant");
+  }
+};
+
+const app = new RadiantRuntime(schema, { plugins: [myGlobalMiddleware] });
+```
+
+### Approach C: Framework Plugins (Dependency Injection)
 Plugins are only required when you want to **override core framework behavior** or distribute reusable lifecycle logic. 
 
 For example, if your `.radiant` schema has a `file` field, the Radiant engine natively handles the file upload by saving it to the local disk using its internal `app.storage` provider. If you want those files to go to AWS S3 instead, you use a Plugin to override that Dependency Injection.

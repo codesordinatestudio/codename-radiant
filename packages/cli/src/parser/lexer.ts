@@ -13,19 +13,20 @@ export const Comment = createToken({
   group: Lexer.SKIPPED
 });
 
-// Keywords
-export const Config = createToken({ name: 'Config', pattern: /config/ });
-export const Collection = createToken({ name: 'Collection', pattern: /collection/ });
-export const Fields = createToken({ name: 'Fields', pattern: /fields/ });
+// Identifier
+export const Identifier = createToken({ name: 'Identifier', pattern: /[a-zA-Z_][a-zA-Z0-9_]*/ });
 
-export const True = createToken({ name: 'True', pattern: /true/ });
-export const False = createToken({ name: 'False', pattern: /false/ });
+// Keywords
+export const Config = createToken({ name: 'Config', pattern: /config/, longer_alt: Identifier });
+export const Collection = createToken({ name: 'Collection', pattern: /collection/, longer_alt: Identifier });
+export const Global = createToken({ name: 'Global', pattern: /globals?/, longer_alt: Identifier });
+export const Fields = createToken({ name: 'Fields', pattern: /fields/, longer_alt: Identifier });
+
+export const True = createToken({ name: 'True', pattern: /true/, longer_alt: Identifier });
+export const False = createToken({ name: 'False', pattern: /false/, longer_alt: Identifier });
 
 // Decorator token: e.g. @unique
 export const Decorator = createToken({ name: 'Decorator', pattern: /@[a-zA-Z_][a-zA-Z0-9_]*/ });
-
-// Identifier
-export const Identifier = createToken({ name: 'Identifier', pattern: /[a-zA-Z_][a-zA-Z0-9_]*/ });
 
 // Punctuation
 export const LCurly = createToken({ name: 'LCurly', pattern: /\{/ });
@@ -50,6 +51,7 @@ export const allTokens = [
   // Keywords
   Config,
   Collection,
+  Global,
   Fields,
   True,
   False,
