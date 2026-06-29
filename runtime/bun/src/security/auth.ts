@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
-import type { RadiantAdapter, AuthUser } from "../core";
+import type { RadiantAdapter } from "../core";
+import type { AuthUser } from "../main/access";
 
 export interface JWTConfig {
   secret: string;

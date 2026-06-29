@@ -1,11 +1,11 @@
 import type { TSchema, Static } from "@sinclair/typebox";
 import { TypeCompiler, type TypeCheck } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
-import { RadiantError } from "./utils/error";
+import { RadiantError, toErrorResponse } from "../utils/error";
 import type { RadiantRuntime } from "./runtime";
 import type { RadiantAST } from "../core/types";
-import type { RadiantRouteContext, RadiantParams, RadiantQuery } from "./request";
-import { methodNotAllowed, notFound, routeErrorToResponse, toResponse, type BunRouteResult } from "./response";
+import type { RadiantRouteContext, RadiantParams, RadiantQuery } from "../core/request";
+import { methodNotAllowed, notFound, toResponse, type BunRouteResult } from "../core/response";
 
 export type RadiantRouteHandler<
   TCollections extends Record<string, any> = any,
@@ -581,7 +581,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
             const processUser = (trust: any): Response | Promise<Response | undefined> | undefined => {
               if (!trust.trusted) {
                 const trustError = new RadiantError(trust.reason ?? "Untrusted Request", "UNTRUSTED_REQUEST", 400);
-                const response = options.onError ? options.onError(trustError, handlerRequest) : routeErrorToResponse(trustError, handlerRequest);
+                const response = options.onError ? options.onError(trustError, handlerRequest) : toErrorResponse(trustError, handlerRequest, options.radiant?.adapter);
                 return withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders));
               }
 
@@ -609,7 +609,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
 
                   if (!isSameOrigin && !hasCustomHeader) {
                     const csrfError = new RadiantError("CSRF verification failed. Missing secure origin or custom header.", "CSRF_ERROR", 403);
-                    const response = options.onError ? options.onError(csrfError, handlerRequest) : routeErrorToResponse(csrfError, handlerRequest);
+                    const response = options.onError ? options.onError(csrfError, handlerRequest) : toErrorResponse(csrfError, handlerRequest, options.radiant?.adapter);
                     return withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders));
                   }
                 }
@@ -629,7 +629,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
             const processRoute = (user: any, state: any): Response | Promise<Response | undefined> | undefined => {
               if (route.options?.authRequired === true && !user) {
                 const authError = new RadiantError("Authentication required", "UNAUTHORIZED", 401);
-                const response = options.onError ? options.onError(authError, handlerRequest) : routeErrorToResponse(authError, handlerRequest);
+                const response = options.onError ? options.onError(authError, handlerRequest) : toErrorResponse(authError, handlerRequest, options.radiant?.adapter);
                 return withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders));
               }
 
@@ -656,7 +656,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
                 // Handler threw synchronously — convert to an error response and
                 // emit monitoring events directly here, because a re-throw into an
                 // async .then() chain would produce an unhandled rejection.
-                const errResponse = options.onError ? options.onError(syncErr, handlerRequest) : routeErrorToResponse(syncErr, handlerRequest);
+                const errResponse = options.onError ? options.onError(syncErr, handlerRequest) : toErrorResponse(syncErr, handlerRequest, options.radiant?.adapter);
                 if (hasMonitoring && options.monitoring) {
                   const durationMs = Math.round(performance.now() - startedAt);
                   const message = syncErr instanceof Error ? syncErr.message : String(syncErr);
@@ -745,14 +745,14 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
             if (idResult instanceof Promise) {
               const p = idResult.then(id => runRequest(id ?? crypto.randomUUID()));
               return p.catch(err => {
-                const errResponse = options.onError ? options.onError(err, request) : routeErrorToResponse(err, request);
+                const errResponse = options.onError ? options.onError(err, request) : toErrorResponse(err, request, options.radiant?.adapter);
                 return withHeaders(errResponse, requestResponseHeaders(request, undefined));
               });
             }
             const res = runRequest(idResult ?? crypto.randomUUID());
             if (res instanceof Promise) {
               return res.catch(err => {
-                const errResponse = options.onError ? options.onError(err, request) : routeErrorToResponse(err, request);
+                const errResponse = options.onError ? options.onError(err, request) : toErrorResponse(err, request, options.radiant?.adapter);
                 return withHeaders(errResponse, requestResponseHeaders(request, undefined));
               });
             }
@@ -761,7 +761,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
           const res = runRequest(undefined);
           if (res instanceof Promise) {
             return res.catch(err => {
-              const errResponse = options.onError ? options.onError(err, request) : routeErrorToResponse(err, request);
+              const errResponse = options.onError ? options.onError(err, request) : toErrorResponse(err, request, options.radiant?.adapter);
               return withHeaders(errResponse, requestResponseHeaders(request, undefined));
             });
           }
@@ -771,7 +771,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
           const handlerRequest = request;
           const requestHeaders = undefined;
           const requestId = undefined;
-          const response = options.onError ? options.onError(error, handlerRequest) : routeErrorToResponse(error, handlerRequest);
+          const response = options.onError ? options.onError(error, handlerRequest) : toErrorResponse(error, handlerRequest, options.radiant?.adapter);
           
           if (hasMonitoring && options.monitoring) {
             const durationMs = Math.round(performance.now() - startedAt);

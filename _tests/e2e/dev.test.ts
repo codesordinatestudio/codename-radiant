@@ -27,7 +27,7 @@ describe('Dev Watcher E2E', () => {
     const targetFile = join(RADIANT_DIR, 'config.radiant');
     await writeFile(targetFile, initialConfig);
 
-    const proc = spawn(['bun', 'run', CLI_PATH, 'dev', '-d', RADIANT_DIR], {
+    const proc = spawn(['bun', 'run', CLI_PATH, 'dev', '--runtime=ts', '-d', RADIANT_DIR], {
       stdout: 'pipe',
       stderr: 'pipe'
     });
@@ -99,7 +99,7 @@ describe('Dev Watcher E2E', () => {
     const targetFile = join(RADIANT_DIR, 'config.radiant');
     await writeFile(targetFile, `config { apiPrefix: "/api" }`);
 
-    const proc = spawn(['bun', 'run', CLI_PATH, 'dev', '-d', RADIANT_DIR], {
+    const proc = spawn(['bun', 'run', CLI_PATH, 'dev', '--runtime=ts', '-d', RADIANT_DIR], {
       stdout: 'pipe',
       stderr: 'pipe'
     });

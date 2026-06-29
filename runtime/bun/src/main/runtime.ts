@@ -1,12 +1,14 @@
-import type { RadiantAST, RadiantAdapter, AccessRules, Hooks, AuthUser, RadiantRequestContext, StorageProvider, CacheStore } from "../core";
+import type { RadiantAST, RadiantAdapter, StorageProvider, CacheStore } from "../core";
+import type { AccessRules, AuthUser, RadiantRequestContext } from "./access";
+import type { Hooks } from "./hooks";
 import { RadiantRouter } from "./router";
-import { generateOpenAPISpec, generateScalarHTML } from "./openapi";
-import { MemoryCacheStore } from "./cache";
-import { LocalStorageProvider } from "./storage";
+import { generateOpenAPISpec, generateScalarHTML } from "../core/openapi";
+import { MemoryCacheStore } from "../core/cache";
+import { LocalStorageProvider } from "../core/storage";
 import { RadiantWebsocket } from "./websocket";
 import { RadiantSSE } from "./sse";
 
-import { JWTAuthenticator, type JWTConfig } from "./auth";
+import { JWTAuthenticator, type JWTConfig } from "../security/auth";
 
 export interface RadiantConfig {
   adapter: RadiantAdapter;
@@ -484,6 +486,16 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
           }
         }
       }
+    }
+  }
+
+  public async fetch(req: Request): Promise<Response> {
+    try {
+      const ctx = await this.getContext(req);
+      const res = await this.router.handle(req, undefined, ctx.user, this);
+      return res || new Response("Not found", { status: 404 });
+    } catch (err: any) {
+      return new Response(JSON.stringify({ error: err.message }), { status: err.status || 500 });
     }
   }
 

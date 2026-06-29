@@ -1,5 +1,5 @@
-import type { AuthUser } from "../core/access";
-import type { RadiantRuntime } from "./runtime";
+import type { AuthUser } from "../main/access";
+import type { RadiantRuntime } from "../main/runtime";
 
 export type RadiantQuery = Record<string, any>;
 export type RadiantParams = Record<string, string>;

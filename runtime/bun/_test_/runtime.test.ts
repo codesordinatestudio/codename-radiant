@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
-import { RadiantRuntime } from '../../runtime/bun/src/runtime';
-import { RadiantAdapter } from '../../runtime/bun/core/types';
+import { RadiantRuntime } from '../src/main/runtime';
+import type { RadiantAdapter } from '../src/core/types';
 
 describe('RadiantRuntime', () => {
   let mockAdapter: RadiantAdapter;
@@ -123,7 +123,7 @@ describe('RadiantRuntime', () => {
       body: JSON.stringify({ refreshToken: '123' })
     });
     
-    const res = await runtime.router.fetch(req);
+    const res = await runtime.fetch(req);
     expect(res.status).toBe(501);
     const body = await res.json();
     expect(body.error).toBe("JWT auth not configured");
@@ -153,8 +153,8 @@ describe('RadiantRuntime', () => {
     const req2 = new Request('http://localhost/api/users');
 
     await Promise.all([
-      runtime.router.fetch(req1),
-      runtime.router.fetch(req2),
+      runtime.fetch(req1),
+      runtime.fetch(req2),
     ]);
 
     // Two distinct contexts should be generated per-request
@@ -321,14 +321,14 @@ describe('RadiantRuntime', () => {
     });
 
     test('GET list returns collection data', async () => {
-      const res = await runtime.router.fetch(new Request('http://localhost/api/posts'));
+      const res = await runtime.fetch(new Request('http://localhost/api/posts'));
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.docs[0].title).toBe('Hello');
     });
 
     test('GET by ID returns specific document', async () => {
-      const res = await runtime.router.fetch(new Request('http://localhost/api/posts/1'));
+      const res = await runtime.fetch(new Request('http://localhost/api/posts/1'));
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.title).toBe('Hello');
@@ -339,7 +339,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ title: 'New Post' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data.title).toBe('New Post');
@@ -351,7 +351,7 @@ describe('RadiantRuntime', () => {
         method: 'PATCH',
         body: JSON.stringify({ title: 'Updated Post' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.title).toBe('Updated Post');
@@ -362,14 +362,14 @@ describe('RadiantRuntime', () => {
       const req = new Request('http://localhost/api/posts/1', {
         method: 'DELETE'
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.deleted).toBe(true);
 
       // Verify it's actually deleted
       const fetchReq = new Request('http://localhost/api/posts/1');
-      const fetchRes = await runtime.router.fetch(fetchReq);
+      const fetchRes = await runtime.fetch(fetchReq);
       expect(fetchRes.status).toBe(404);
     });
 
@@ -378,7 +378,7 @@ describe('RadiantRuntime', () => {
         read: async () => false, // deny all reads
       });
 
-      const res = await runtime.router.fetch(new Request('http://localhost/api/posts'));
+      const res = await runtime.fetch(new Request('http://localhost/api/posts'));
       // Expect 500 error since we throw an Error in checkAccess, handled by router (Bun's default is 500 or router handles it)
       // Actually RadiantRouter handles async throwing? 
       // If it's uncaught, Bun returns 500. Let's see what it returns.
@@ -397,7 +397,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ title: 'Hook Post' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data.modified).toBe(true);
@@ -408,7 +408,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ email: 'admin@test.com', password: 'secret' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.accessToken).toBeDefined();
@@ -421,7 +421,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ email: 'admin@test.com', password: 'wrong' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(401);
       const data = await res.json();
       expect(data.error).toBe('Invalid credentials');
@@ -432,7 +432,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ email: 'new@test.com', password: 'my-password' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data.accessToken).toBeDefined();
@@ -445,7 +445,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ email: 'admin@test.com', password: 'another-password' })
       });
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(409);
       const data = await res.json();
       expect(data.error).toBe('User already exists');
@@ -457,7 +457,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ email: 'admin@test.com', password: 'secret' })
       });
-      const loginRes = await runtime.router.fetch(loginReq);
+      const loginRes = await runtime.fetch(loginReq);
       const { refreshToken } = await loginRes.json();
 
       // 2. Logout
@@ -465,7 +465,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ refreshToken })
       });
-      const logoutRes = await runtime.router.fetch(logoutReq);
+      const logoutRes = await runtime.fetch(logoutReq);
       expect(logoutRes.status).toBe(200);
 
       // 3. Try refreshing with the revoked token
@@ -473,7 +473,7 @@ describe('RadiantRuntime', () => {
         method: 'POST',
         body: JSON.stringify({ refreshToken })
       });
-      const refreshRes = await runtime.router.fetch(refreshReq);
+      const refreshRes = await runtime.fetch(refreshReq);
       expect(refreshRes.status).toBe(401); // Invalid or expired
     });
   });
@@ -505,11 +505,11 @@ describe('RadiantRuntime', () => {
       await runtime.buildRoutes();
       
       const req1 = new Request("http://localhost:3000/api/todos");
-      const res1 = await runtime.router.fetch(req1);
+      const res1 = await runtime.fetch(req1);
       expect(res1.headers.get("X-Cache")).toBe("MISS");
       
       const req2 = new Request("http://localhost:3000/api/todos");
-      const res2 = await runtime.router.fetch(req2);
+      const res2 = await runtime.fetch(req2);
       expect(res2.headers.get("X-Cache")).toBe("HIT");
     });
     
@@ -526,13 +526,13 @@ describe('RadiantRuntime', () => {
       await runtime.buildRoutes();
       
       const req1 = new Request("http://localhost:3000/api/todos");
-      await runtime.router.fetch(req1);
+      await runtime.fetch(req1);
       
       const reqPost = new Request("http://localhost:3000/api/todos", { method: "POST", body: JSON.stringify({ title: "New" }) });
-      await runtime.router.fetch(reqPost);
+      await runtime.fetch(reqPost);
       
       const req2 = new Request("http://localhost:3000/api/todos");
-      const res2 = await runtime.router.fetch(req2);
+      const res2 = await runtime.fetch(req2);
       expect(res2.headers.get("X-Cache")).toBe("MISS");
     });
 
@@ -553,7 +553,7 @@ describe('RadiantRuntime', () => {
         body: formData,
       });
 
-      const res = await runtime.router.fetch(req);
+      const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data.url).toBeDefined();

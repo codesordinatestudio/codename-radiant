@@ -1,4 +1,4 @@
-import type { RadiantAdapter, QueryArgs, PaginatedResult } from "../core";
+import type { RadiantAdapter, QueryArgs, PaginatedResult } from "./";
 
 export class MemoryAdapter implements RadiantAdapter {
   name = "memory";

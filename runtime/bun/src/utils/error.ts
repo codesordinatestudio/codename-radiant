@@ -53,7 +53,7 @@ export interface RadiantErrorResponse {
 // Database Constraint Error Parsing
 // ============================================================================
 
-import type { ConstraintType, ParsedConstraintError, RadiantAdapter } from "../../core";
+import type { ConstraintType, ParsedConstraintError, RadiantAdapter } from "../core";
 
 /**
  * Parse a database constraint error message and extract structured information.

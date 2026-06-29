@@ -1,6 +1,6 @@
 import { Type as t } from "@sinclair/typebox";
 import { createRadiant } from "../todo-list/radiant/runtime";
-import { MemoryAdapter } from "../../runtime/bun/src/memory-adapter";
+import { MemoryAdapter } from "../../runtime/bun/src";
 
 const port = Number(Bun.env.PORT ?? Bun.env.BENCH_PORT ?? 4100);
 process.env.JWT_SECRET = "secret";

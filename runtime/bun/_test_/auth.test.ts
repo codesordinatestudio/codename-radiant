@@ -1,6 +1,6 @@
 import { test, expect, describe, beforeEach, afterEach, setSystemTime } from 'bun:test';
-import { JWTAuthenticator } from '../../runtime/bun/src/auth';
-import { RadiantAdapter } from '../../runtime/bun/core/types';
+import { JWTAuthenticator } from '../src/security/auth';
+import type { RadiantAdapter } from '../src/core/types';
 import { jwtVerify } from 'jose';
 
 describe('JWTAuthenticator', () => {

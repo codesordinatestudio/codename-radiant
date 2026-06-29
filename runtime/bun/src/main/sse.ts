@@ -1,4 +1,4 @@
-export type AuthUser = { id: string; role?: string; [key: string]: any };
+import type { AuthUser } from "./access";
 type MaybePromise<T> = T | Promise<T>;
 
 type BroadcastOptions = {

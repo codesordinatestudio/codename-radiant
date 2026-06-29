@@ -1,4 +1,4 @@
-import type { RadiantAST, CollectionConfig, FieldConfig } from "../core/types";
+import type { RadiantAST, CollectionConfig, FieldConfig } from "./types";
 
 export function generateScalarHTML(specUrl: string, title: string = "Radiant API"): string {
   return `

@@ -1,4 +1,4 @@
-import type { RadiantRuntime } from "../src/runtime";
+import type { RadiantRuntime } from "./runtime";
 
 export interface AuthUser {
   id: string;
