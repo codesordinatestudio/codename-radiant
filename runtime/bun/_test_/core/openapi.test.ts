@@ -158,5 +158,73 @@ describe("core/openapi", () => {
       // Global endpoints should use the correct tags
       expect(paths[globalPath].get.tags).toEqual(["Globals"]);
     });
+
+    test("generates custom endpoints from app.routes using TypeBox schemas", async () => {
+      // We import Type dynamically so it doesn't break the rest of the file
+      const { Type } = await import("@sinclair/typebox");
+      const appRoutes = {
+        routes: [
+          {
+            method: "post",
+            path: "/api/custom/hello",
+            hooks: {
+              detail: {
+                summary: "Say hello",
+                tags: ["Custom Tag"]
+              },
+              body: Type.Object({
+                name: Type.String()
+              }),
+              query: Type.Object({
+                shout: Type.Optional(Type.Boolean())
+              }),
+              response: {
+                200: Type.Object({
+                  message: Type.String()
+                }),
+                400: Type.Object({
+                  error: Type.String()
+                })
+              }
+            }
+          }
+        ]
+      };
+
+      const spec = generateOpenAPISpec(mockAst, "http://localhost", "/api", appRoutes);
+      const customPath = spec.paths["/api/custom/hello"];
+      expect(customPath).toBeDefined();
+      expect(customPath.post).toBeDefined();
+      
+      const op = customPath.post;
+      expect(op.summary).toBe("Say hello");
+      expect(op.tags).toEqual(["Custom Tag"]);
+
+      // Request Body
+      const bodySchema = op.requestBody.content["application/json"].schema;
+      expect(bodySchema.type).toBe("object");
+      expect(bodySchema.properties.name.type).toBe("string");
+      expect(bodySchema.required).toContain("name");
+
+      // Query Params
+      expect(op.parameters).toBeArray();
+      const shoutParam = op.parameters.find((p: any) => p.name === "shout");
+      expect(shoutParam).toBeDefined();
+      expect(shoutParam.in).toBe("query");
+      expect(shoutParam.schema.type).toBe("boolean");
+      expect(shoutParam.required).toBe(false);
+
+      // Responses
+      console.log(JSON.stringify(op.responses, null, 2));
+      expect(op.responses["200"]).toBeDefined();
+      const res200Schema = op.responses["200"].content["application/json"].schema;
+      expect(res200Schema.type).toBe("object");
+      expect(res200Schema.properties.message.type).toBe("string");
+
+      expect(op.responses["400"]).toBeDefined();
+      const res400Schema = op.responses["400"].content["application/json"].schema;
+      expect(res400Schema.properties.error.type).toBe("string");
+    });
   });
 });
+

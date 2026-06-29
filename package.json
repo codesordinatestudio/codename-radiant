@@ -4,7 +4,7 @@
   "workspaces": [
     "packages/*",
     "runtime/*",
-    "plugins/*",
+    "plugins/ts/*",
     "examples/*"
   ],
   "packageManager": "bun@1.0.0",

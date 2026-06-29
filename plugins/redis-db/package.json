@@ -1,0 +1,22 @@
+{
+  "name": "@codesordinatestudio/lucent-plugin-redis-db",
+  "version": "0.13.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@codesordinatestudio/lucent-core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  },
+  "sideEffects": false
+}

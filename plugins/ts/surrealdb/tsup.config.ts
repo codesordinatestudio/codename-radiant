@@ -5,9 +5,8 @@ export default defineConfig({
     index: "src/index.ts",
   },
   format: ["esm"],
-  dts: true,
+  dts: false,
   sourcemap: false,
   clean: true,
-  noExternal: ["postgres"],
-  external: ["@codesordinatestudio/lucent", "@codesordinatestudio/lucent-core", "bun"],
+  external: ["@codesordinatestudio/lucent-core", "@codesordinatestudio/lucent-core", "surrealdb"],
 });

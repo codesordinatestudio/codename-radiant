@@ -149,7 +149,20 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
       const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? url.host;
       const serverUrl = `${proto}://${host}`;
 
-      const spec = generateOpenAPISpec(this.schema, serverUrl, prefix);
+      const mappedApp = {
+        routes: this.router.list().map((route) => ({
+          method: route.method,
+          path: route.path,
+          hooks: {
+            body: route.options?.body,
+            query: route.options?.query,
+            response: route.options?.response,
+            detail: route.options?.detail,
+          },
+        })),
+      };
+
+      const spec = generateOpenAPISpec(this.schema, serverUrl, prefix, mappedApp);
       return new Response(JSON.stringify(spec, null, 2), {
         headers: { "Content-Type": "application/json" }
       });

@@ -18,13 +18,16 @@ export async function scaffoldTsProject(rootDir: string) {
     if (existsSync(defaultIndex)) rmSync(defaultIndex);
     s.stop("Bun project initialized");
 
-    let dbChoice = "1";
+    let dbChoice = process.env.TEST_DB_CHOICE || "1";
     if (process.env.NODE_ENV !== "test") {
       const dbSelect = await p.select({
         message: "Choose your Database Adapter",
         options: [
-          { value: "1", label: "Memory", hint: "Default, Development only" },
-          { value: "2", label: "PostgreSQL" },
+          { value: '1', label: 'SQLite', hint: 'Default, zero config' },
+          { value: '2', label: 'PostgreSQL' },
+          { value: '3', label: 'MongoDB' },
+          { value: '4', label: 'Redis' },
+          { value: '5', label: 'SurrealDB' }
         ],
       });
       if (p.isCancel(dbSelect)) {
@@ -34,16 +37,22 @@ export async function scaffoldTsProject(rootDir: string) {
       dbChoice = dbSelect as string;
     }
 
-    const usePostgres = dbChoice === "2";
+    const useSqlite = dbChoice === '1';
+    const usePostgres = dbChoice === '2';
+    const useMongo = dbChoice === '3';
+    const useRedis = dbChoice === '4';
+    const useSurreal = dbChoice === '5';
 
     let isLinked = false;
 
     if (process.env.NODE_ENV !== "test") {
       s.start("Installing @codesordinatestudio/radiant-bun");
-      let installCmd = "bun add @codesordinatestudio/radiant-bun@latest";
-      if (usePostgres) {
-        installCmd += " @codesordinatestudio/radiant-plugin-postgres@latest";
-      }
+      let installCmd = 'bun add @codesordinatestudio/radiant-bun@latest';
+      if (useSqlite) installCmd += ' @codesordinatestudio/radiant-plugin-sqlite@latest';
+      else if (usePostgres) installCmd += ' @codesordinatestudio/radiant-plugin-postgres@latest';
+      else if (useMongo) installCmd += ' @codesordinatestudio/radiant-plugin-mongodb@latest';
+      else if (useRedis) installCmd += ' @codesordinatestudio/radiant-plugin-redis@latest';
+      else if (useSurreal) installCmd += ' @codesordinatestudio/radiant-plugin-surrealdb@latest';
       try {
         execSync(installCmd, { stdio: "ignore", cwd: rootDir });
         s.stop("Dependencies installed from NPM");
@@ -60,21 +69,26 @@ export async function scaffoldTsProject(rootDir: string) {
       dev: "bun run --hot src/index.ts",
       build: "bun build src/index.ts --outdir dist --target bun",
     };
+    
     pkgJson.dependencies = {
       ...pkgJson.dependencies,
-      "@codesordinatestudio/radiant-bun": isLinked ? "link:@codesordinatestudio/radiant-bun" : "latest",
+      "@codesordinatestudio/radiant-bun": isLinked ? "link:@codesordinatestudio/radiant-bun" : "latest"
     };
-    if (usePostgres) {
-      pkgJson.dependencies["@codesordinatestudio/radiant-plugin-postgres"] = isLinked
-        ? "link:@codesordinatestudio/radiant-plugin-postgres"
-        : "latest";
-    }
+    if (useSqlite) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-sqlite"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-sqlite" : "latest";
+    if (usePostgres) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-postgres"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-postgres" : "latest";
+    if (useMongo) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-mongodb"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-mongodb" : "latest";
+    if (useRedis) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-redis"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-redis" : "latest";
+    if (useSurreal) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-surrealdb"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-surrealdb" : "latest";
     writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
 
     if (process.env.NODE_ENV !== "test") {
       s.start("Running bun install");
-      execSync("bun install", { stdio: "ignore", cwd: rootDir });
-      s.stop("Packages installed");
+      try {
+        execSync("bun install", { stdio: "ignore", cwd: rootDir });
+        s.stop("Packages installed");
+      } catch (e) {
+        s.stop("Bun install failed.");
+      }
     }
 
     const srcDir = join(rootDir, "src");
@@ -289,12 +303,21 @@ export async function scaffoldTsProject(rootDir: string) {
     let imports = `import { createRadiant } from "../radiant/runtime";\n`;
     let adapterConfig = "";
 
-    if (usePostgres) {
+    if (useSqlite) {
+      imports += `import { sqlite } from "@codesordinatestudio/radiant-plugin-sqlite";\n`;
+      adapterConfig = `  adapter: sqlite({ url: process.env.DATABASE_URL! })`;
+    } else if (usePostgres) {
       imports += `import { postgres } from "@codesordinatestudio/radiant-plugin-postgres";\n`;
       adapterConfig = `  adapter: postgres({ url: process.env.DATABASE_URL! })`;
-    } else {
-      imports += `import { MemoryAdapter } from "@codesordinatestudio/radiant-bun";\n`;
-      adapterConfig = `  adapter: new MemoryAdapter()`;
+    } else if (useMongo) {
+      imports += `import { mongodb } from "@codesordinatestudio/radiant-plugin-mongodb";\n`;
+      adapterConfig = `  adapter: mongodb({ url: process.env.DATABASE_URL! })`;
+    } else if (useRedis) {
+      imports += `import { redis } from "@codesordinatestudio/radiant-plugin-redis";\n`;
+      adapterConfig = `  adapter: redis({ url: process.env.DATABASE_URL! })`;
+    } else if (useSurreal) {
+      imports += `import { surrealdb } from "@codesordinatestudio/radiant-plugin-surrealdb";\n`;
+      adapterConfig = `  adapter: surrealdb({ url: process.env.DATABASE_URL!, user: "root", pass: "root", ns: "test", db: "test" })`;
     }
 
     const appTsContent = `${imports}
@@ -335,11 +358,13 @@ app.start({ port: 3000 }).catch(console.error);
 `;
     writeFileSync(join(srcDir, "index.ts"), indexTsContent);
 
-    let envContent = `JWT_SECRET=${randomBytes(16).toString("hex")}\n`;
-    if (usePostgres) {
-      envContent += `DATABASE_URL=postgres://postgres:password123@localhost:5432/radiant_app\n`;
-    }
-    writeFileSync(join(rootDir, ".env"), envContent);
+    let envContent = `JWT_SECRET=${randomBytes(16).toString('hex')}\n`;
+    if (useSqlite) envContent += `DATABASE_URL=radiant.sqlite\n`;
+    else if (usePostgres) envContent += `DATABASE_URL=postgres://postgres:postgres@localhost:5432/radiant_app\n`;
+    else if (useMongo) envContent += `DATABASE_URL=mongodb://localhost:27017/radiant_app\n`;
+    else if (useRedis) envContent += `DATABASE_URL=redis://localhost:6379\n`;
+    else if (useSurreal) envContent += `DATABASE_URL=http://localhost:8000\n`;
+    writeFileSync(join(rootDir, '.env'), envContent);
 
     p.note(
       `${pc.blue("src/app.ts")} created with app initialization\n${pc.blue("src/access.ts")} created for access rules\n${pc.blue("src/custom-routes.ts")} created for custom routes\n${pc.blue("src/index.ts")} created with server implementation\n${pc.blue(".env")} created with JWT_SECRET`,

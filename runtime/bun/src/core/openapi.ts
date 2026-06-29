@@ -1,5 +1,29 @@
 import type { RadiantAST, CollectionConfig, FieldConfig } from "./types";
 
+export type OpenAPIRouteDetail = Record<string, unknown> & {
+  description?: string;
+  summary?: string;
+  tags?: string[];
+};
+
+export type OpenAPIRouteHooks = Record<string, unknown> & {
+  body?: unknown;
+  detail?: OpenAPIRouteDetail;
+  query?: unknown;
+  response?: unknown;
+  tags?: string[];
+};
+
+export type OpenAPIRoute = {
+  hooks?: OpenAPIRouteHooks;
+  method?: string;
+  path?: string;
+};
+
+export type OpenAPIRouteApp = {
+  routes?: Iterable<OpenAPIRoute>;
+};
+
 export function generateScalarHTML(specUrl: string, title: string = "Radiant API"): string {
   return `
 <!DOCTYPE html>
@@ -86,7 +110,173 @@ function buildCollectionSchema(collection: CollectionConfig, isInput = false): a
   };
 }
 
-export function generateOpenAPISpec(schema: RadiantAST, serverUrl: string, prefix: string): any {
+const _TB_KIND = Symbol.for("TypeBox.Kind");
+const _TB_MODIFIER = Symbol.for("TypeBox.Modifier");
+
+function typeboxToOpenAPISchema(schema: unknown): Record<string, unknown> {
+  if (!schema || typeof schema !== "object") return {};
+  const s = schema as Record<string | symbol, unknown>;
+  const kind = s[_TB_KIND] as string | undefined;
+
+  switch (kind) {
+    case "String":
+    case "RegExp":
+    case "TemplateLiteral":
+      return { type: "string" };
+    case "Number":
+      return { type: "number" };
+    case "Integer":
+      return { type: "integer" };
+    case "Boolean":
+      return { type: "boolean" };
+    case "Null":
+      return { type: "null" };
+    case "Any":
+    case "Unknown":
+      return {};
+    case "Void":
+      return {};
+    case "Date":
+      return { type: "string", format: "date-time" };
+    case "File":
+    case "Blob":
+      return { type: "string", format: "binary" };
+    case "Literal": {
+      const val = s["const"];
+      const t = typeof val;
+      return t === "string"
+        ? { type: "string", enum: [val] }
+        : t === "number"
+          ? { type: "number", enum: [val] }
+          : { type: "boolean", enum: [val] };
+    }
+    case "Array":
+      return { type: "array", items: typeboxToOpenAPISchema(s["items"]) };
+    case "Tuple": {
+      const items = (s["items"] as unknown[]) ?? [];
+      return { type: "array", prefixItems: items.map(typeboxToOpenAPISchema), maxItems: items.length };
+    }
+    case "Union": {
+      const variants = (s["anyOf"] as unknown[]) ?? [];
+      return { oneOf: variants.map(typeboxToOpenAPISchema) };
+    }
+    case "Intersect": {
+      const variants = (s["allOf"] as unknown[]) ?? [];
+      return { allOf: variants.map(typeboxToOpenAPISchema) };
+    }
+    case "Object": {
+      const properties = (s["properties"] as Record<string, unknown>) ?? {};
+      const required = (s["required"] as string[]) ?? [];
+      const props: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(properties)) {
+        props[key] = typeboxToOpenAPISchema(val);
+      }
+      return {
+        type: "object",
+        properties: props,
+        ...(required.length > 0 ? { required } : {}),
+      };
+    }
+    default: {
+      if (s[_TB_MODIFIER] === "Optional") {
+        const { [_TB_MODIFIER]: _m, ...rest } = s;
+        return typeboxToOpenAPISchema(rest);
+      }
+      try {
+        const clean = JSON.parse(JSON.stringify(schema)) as Record<string, unknown>;
+        delete clean["$schema"];
+        return clean;
+      } catch {
+        return {};
+      }
+    }
+  }
+}
+
+function schemaHasFileField(schema: unknown): boolean {
+  if (!schema || typeof schema !== "object") return false;
+  const s = schema as Record<string | symbol, unknown>;
+  const kind = s[_TB_KIND] as string | undefined;
+  if (kind === "File" || kind === "Blob") return true;
+  if (kind === "Object") {
+    const props = (s["properties"] as Record<string, unknown>) ?? {};
+    return Object.values(props).some(schemaHasFileField);
+  }
+  return false;
+}
+
+function buildRequestBody(bodySchema: unknown): Record<string, unknown> {
+  const oaSchema = typeboxToOpenAPISchema(bodySchema);
+  const contentType = schemaHasFileField(bodySchema) ? "multipart/form-data" : "application/json";
+  return {
+    required: true,
+    content: { [contentType]: { schema: oaSchema } },
+  };
+}
+
+function buildQueryParameters(querySchema: unknown): Record<string, unknown>[] {
+  if (!querySchema || typeof querySchema !== "object") return [];
+  const s = querySchema as Record<string | symbol, unknown>;
+  if ((s[_TB_KIND] as string) !== "Object") return [];
+  const properties = (s["properties"] as Record<string, unknown>) ?? {};
+  const required = new Set<string>((s["required"] as string[]) ?? []);
+  return Object.entries(properties).map(([name, val]) => ({
+    name,
+    in: "query",
+    required: required.has(name),
+    schema: typeboxToOpenAPISchema(val),
+  }));
+}
+
+function buildResponsesFromSchema(responseSchema: unknown): Record<string, unknown> {
+  if (!responseSchema || typeof responseSchema !== "object") {
+    return { "200": { description: "OK" } };
+  }
+  const s = responseSchema as Record<string | symbol, unknown>;
+  const kind = s[_TB_KIND] as string | undefined;
+
+  if (kind) {
+    const oaSchema = typeboxToOpenAPISchema(responseSchema);
+    const isEmpty = Object.keys(oaSchema).length === 0;
+    return {
+      "200": {
+        description: "OK",
+        ...(!isEmpty ? { content: { "application/json": { schema: oaSchema } } } : {}),
+      },
+    };
+  }
+
+  const responses: Record<string, unknown> = {};
+  for (const [statusCode, val] of Object.entries(s as Record<string, unknown>)) {
+    if (!/^\d{3}$/.test(statusCode)) continue;
+    const valSchema = typeboxToOpenAPISchema(val);
+    const isEmpty = Object.keys(valSchema).length === 0;
+    responses[statusCode] = {
+      description: httpStatusDescription(Number(statusCode)),
+      ...(!isEmpty ? { content: { "application/json": { schema: valSchema } } } : {}),
+    };
+  }
+  return Object.keys(responses).length > 0 ? responses : { "200": { description: "OK" } };
+}
+
+function httpStatusDescription(code: number): string {
+  const map: Record<number, string> = {
+    200: "OK",
+    201: "Created",
+    204: "No Content",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    409: "Conflict",
+    422: "Unprocessable Entity",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+  };
+  return map[code] ?? "Response";
+}
+
+export function generateOpenAPISpec(schema: RadiantAST, serverUrl: string, prefix: string, app?: OpenAPIRouteApp): any {
   const paths: Record<string, any> = {};
   const components: Record<string, any> = { schemas: {} };
 
@@ -417,6 +607,55 @@ export function generateOpenAPISpec(schema: RadiantAST, serverUrl: string, prefi
           }
         }
       };
+    }
+  }
+
+  if (app?.routes) {
+    for (const route of app.routes) {
+      const method = route.method?.toLowerCase();
+      const rawPath = route.path;
+      if (!method || !rawPath) continue;
+      const routePath = rawPath.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, "{$1}");
+      const detail = route.hooks?.detail;
+      const routeTags = detail?.tags ?? route.hooks?.tags ?? [];
+
+      if (method === "options" || paths[routePath]?.[method]) continue;
+
+      const isInternalPath = rawPath.startsWith(`${prefix}/docs`);
+      if (isInternalPath) continue;
+
+      const operationTags = routeTags.length ? routeTags : ["Custom"];
+      const operation: Record<string, unknown> = {
+        ...(detail ?? {}),
+        tags: operationTags,
+      };
+
+      const bodySchema = route.hooks?.body;
+      const querySchema = route.hooks?.query;
+      const responseSchema = route.hooks?.response;
+
+      if (bodySchema && !operation.requestBody && ["post", "put", "patch"].includes(method)) {
+        operation.requestBody = buildRequestBody(bodySchema);
+      }
+
+      if (querySchema) {
+        const generatedParams = buildQueryParameters(querySchema);
+        if (generatedParams.length > 0) {
+          operation.parameters = [
+            ...generatedParams,
+            ...((operation.parameters as unknown[]) ?? []),
+          ];
+        }
+      }
+
+      if (responseSchema && !operation.responses) {
+        operation.responses = buildResponsesFromSchema(responseSchema);
+      } else if (!operation.responses) {
+        operation.responses = { "200": { description: "OK" } };
+      }
+
+      paths[routePath] ??= {};
+      paths[routePath][method] = operation;
     }
   }
 

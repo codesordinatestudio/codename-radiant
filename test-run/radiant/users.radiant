@@ -1,0 +1,1 @@
+collection users { auth: true; fields: { name: text; } }

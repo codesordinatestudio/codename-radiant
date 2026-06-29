@@ -38,7 +38,7 @@ describe('E2E CLI Tests', () => {
     await writeFile(join(RADIANT_DIR, 'config.radiant'), validConfig);
     await writeFile(join(RADIANT_DIR, 'users.radiant'), validCollection);
 
-    const result = spawnSync(['bun', 'run', CLI_PATH, 'build', '-d', RADIANT_DIR]);
+    const result = spawnSync(['bun', 'run', CLI_PATH, 'generate', '-r', 'ts', '-d', RADIANT_DIR]);
     expect(result.exitCode).toBe(0);
 
     const schemaPath = join(RADIANT_DIR, 'runtime', 'schema.json');
@@ -75,7 +75,7 @@ describe('E2E CLI Tests', () => {
     
     await writeFile(join(RADIANT_DIR, 'config.radiant'), validConfig);
 
-    const result = spawnSync(['bun', 'run', CLI_PATH, 'build', '-d', RADIANT_DIR]);
+    const result = spawnSync(['bun', 'run', CLI_PATH, 'generate', '-r', 'ts', '-d', RADIANT_DIR]);
     expect(result.exitCode).toBe(0);
 
     const schemaPath = join(RADIANT_DIR, 'runtime', 'schema.json');
@@ -95,7 +95,7 @@ describe('E2E CLI Tests', () => {
     `;
     await writeFile(join(RADIANT_DIR, 'config.radiant'), invalidConfig);
 
-    const result = spawnSync(['bun', 'run', CLI_PATH, 'build', '-d', RADIANT_DIR]);
+    const result = spawnSync(['bun', 'run', CLI_PATH, 'generate', '-r', 'ts', '-d', RADIANT_DIR]);
     expect(result.exitCode).toBe(1);
     const output = result.stderr.toString();
     expect(output).toContain('Parsing errors');
@@ -115,7 +115,7 @@ describe('E2E CLI Tests', () => {
     `;
     await writeFile(join(RADIANT_DIR, 'config.radiant'), semanticErrorConfig);
 
-    const result = spawn(['bun', 'run', CLI_PATH, 'build', '-d', RADIANT_DIR], { stdout: 'pipe', stderr: 'pipe' });
+    const result = spawn(['bun', 'run', CLI_PATH, 'generate', '-r', 'ts', '-d', RADIANT_DIR], { stdout: 'pipe', stderr: 'pipe' });
     const exitCode = await result.exited;
     expect(exitCode).toBe(1);
     const output = await new Response(result.stderr).text();

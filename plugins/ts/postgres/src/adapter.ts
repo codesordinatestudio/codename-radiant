@@ -4,7 +4,7 @@
 import { sql, SQL } from "bun";
 import postgresJs from "postgres";
 import type {
-  RadiantAdapter as LucentAdapter,
+  RadiantAdapter as RadiantAdapter,
   QueryArgs,
   PaginatedResult as QueryResult,
   CollectionConfig as Collection,
@@ -31,7 +31,7 @@ function pgLiteral(value: string): string {
 /**
  * PostgreSQL adapter using Bun's native SQL driver.
  */
-export class PostgresAdapter implements LucentAdapter {
+export class PostgresAdapter implements RadiantAdapter {
   readonly adapterType = "postgres";
   readonly supportsGeneratedConstraintSQL = true;
   private db: any = null;

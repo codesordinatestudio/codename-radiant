@@ -1,12 +1,12 @@
 import { Type as t } from "@sinclair/typebox";
 import { createRadiant } from "../todo-list/radiant/runtime";
-import { MemoryAdapter } from "../../runtime/bun/src";
+import { sqlite } from "../../plugins/ts/sqlite/src/index";
 
 const port = Number(Bun.env.PORT ?? Bun.env.BENCH_PORT ?? 4100);
 process.env.JWT_SECRET = "secret";
 
 const app = createRadiant({
-  adapter: new MemoryAdapter(),
+  adapter: sqlite({ url: ":memory:" }),
 });
 
 app.router.get("/__bench/ready", () => ({ status: "ok", runtime: "radiant" }));

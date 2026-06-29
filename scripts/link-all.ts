@@ -15,17 +15,40 @@ for (const workspace of workspaces) {
   for (const dir of dirs) {
     const fullPath = join(workspacePath, dir);
     if (statSync(fullPath).isDirectory()) {
-      const pkgJsonPath = join(fullPath, 'package.json');
-      if (existsSync(pkgJsonPath)) {
-        try {
-          const pkgJson = require(pkgJsonPath);
-          if (pkgJson.name) {
-            console.log(`Linking ${pkgJson.name}...`);
-            await $`cd ${fullPath} && bun link`;
-            linkedPackages.push(pkgJson.name);
+      // If it's the "ts" folder inside "plugins", traverse one level deeper
+      if (workspace === 'plugins' && dir === 'ts') {
+        const subDirs = readdirSync(fullPath);
+        for (const subDir of subDirs) {
+          const subFullPath = join(fullPath, subDir);
+          if (statSync(subFullPath).isDirectory()) {
+            const pkgJsonPath = join(subFullPath, 'package.json');
+            if (existsSync(pkgJsonPath)) {
+              try {
+                const pkgJson = require(pkgJsonPath);
+                if (pkgJson.name) {
+                  console.log(`Linking ${pkgJson.name}...`);
+                  await $`cd ${subFullPath} && bun link`;
+                  linkedPackages.push(pkgJson.name);
+                }
+              } catch (e) {
+                console.error(`Error reading ${pkgJsonPath}:`, e);
+              }
+            }
           }
-        } catch (e) {
-          console.error(`Error reading ${pkgJsonPath}:`, e);
+        }
+      } else {
+        const pkgJsonPath = join(fullPath, 'package.json');
+        if (existsSync(pkgJsonPath)) {
+          try {
+            const pkgJson = require(pkgJsonPath);
+            if (pkgJson.name) {
+              console.log(`Linking ${pkgJson.name}...`);
+              await $`cd ${fullPath} && bun link`;
+              linkedPackages.push(pkgJson.name);
+            }
+          } catch (e) {
+            console.error(`Error reading ${pkgJsonPath}:`, e);
+          }
         }
       }
     }
