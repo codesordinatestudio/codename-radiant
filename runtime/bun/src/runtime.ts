@@ -1,17 +1,25 @@
-import type { RadiantAST, RadiantAdapter, AccessRules, Hooks, AuthUser, RadiantRequestContext } from "../core";
+import type { RadiantAST, RadiantAdapter, AccessRules, Hooks, AuthUser, RadiantRequestContext, StorageProvider, CacheStore } from "../core";
 import { RadiantRouter } from "./router";
 import { generateOpenAPISpec, generateScalarHTML } from "./openapi";
+import { MemoryCacheStore } from "./cache";
+import { LocalStorageProvider } from "./storage";
+import { RadiantWebsocket } from "./websocket";
+import { RadiantSSE } from "./sse";
 
 import { JWTAuthenticator, type JWTConfig } from "./auth";
 
 export interface RadiantConfig {
   adapter: RadiantAdapter;
+  storage?: StorageProvider;
+  cache?: CacheStore;
 }
 
 export class RadiantRuntime<T = any> {
   private schema: RadiantAST;
   private adapter: RadiantAdapter;
   public router: RadiantRouter;
+  public storage: StorageProvider;
+  public cache: CacheStore;
   private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks>();
@@ -20,7 +28,10 @@ export class RadiantRuntime<T = any> {
   constructor(schema: RadiantAST, config: RadiantConfig) {
     this.schema = this.resolveEnvVariables(schema);
     this.adapter = config.adapter;
+    this.adapter = config.adapter;
     const prefix = this.schema.core?.api?.prefix || '/api';
+    this.storage = config.storage || new LocalStorageProvider('uploads', prefix);
+    this.cache = config.cache || new MemoryCacheStore();
     this.router = new RadiantRouter(prefix);
 
     if (this.schema.security?.auth?.strategies?.includes("jwt")) {
@@ -145,8 +156,37 @@ export class RadiantRuntime<T = any> {
       });
     });
 
+    // Mount WS and SSE routes
+    const isRealtimeGlobal = this.schema.collections.some(c => c.realtime);
+    if (isRealtimeGlobal) {
+      this.router.get('/ws', RadiantWebsocket.route({ path: `${prefix}/ws` }));
+      this.router.get('/sse', RadiantSSE.route({ path: `${prefix}/sse` }));
+    }
+
+    // Mount Global Upload Route
+    this.router.post('/upload', async (req) => {
+      const formData = await req.formData().catch(() => null);
+      if (!formData) return new Response(JSON.stringify({ error: "Failed to parse form data" }), { status: 400 });
+      
+      const file = formData.get("file");
+      if (!(file instanceof File)) return new Response(JSON.stringify({ error: "A 'file' field is required" }), { status: 400 });
+
+      const uploadedFile = await this.storage.saveFile(file);
+      return new Response(JSON.stringify(uploadedFile), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    // Mount Static Uploads Serve
+    this.router.get(`/uploads/:filename`, (req, params) => {
+      const filePath = `${process.cwd()}/uploads/${params.filename}`;
+      const file = Bun.file(filePath);
+      return new Response(file);
+    });
+
     for (const collection of this.schema.collections) {
       const basePath = `/${collection.slug}`;
+      const hasCache = !!collection.cache;
+      const cacheTTL = collection.cache?.ttl || 3600;
+      const isRealtime = !!collection.realtime;
 
       if (collection.auth) {
         // REGISTER
@@ -238,18 +278,59 @@ export class RadiantRuntime<T = any> {
       this.router.get(basePath, async (req) => {
         const ctx = await this.getContext(req);
         await this.checkAccess(collection.slug, "read", ctx);
+
+        if (hasCache) {
+          const cacheKey = `list:${collection.slug}:${new URL(req.url).search}`;
+          const cached = await this.cache.get(cacheKey);
+          if (cached) return new Response(JSON.stringify(cached), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
+        }
+
         const result = await this.adapter.find(collection.slug, {});
-        return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+        
+        if (hasCache) {
+          const cacheKey = `list:${collection.slug}:${new URL(req.url).search}`;
+          await this.cache.set(cacheKey, result, cacheTTL);
+        }
+
+        return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
       });
 
       // GET ONE
       this.router.get(`${basePath}/:id`, async (req, params) => {
         const ctx = await this.getContext(req);
         await this.checkAccess(collection.slug, "read", ctx);
+
+        if (hasCache) {
+          const cacheKey = `doc:${collection.slug}:${params.id}`;
+          const cached = await this.cache.get(cacheKey);
+          if (cached) return new Response(JSON.stringify(cached), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
+        }
+
         const result = await this.adapter.findById(collection.slug, params.id);
         if (!result) return new Response("Not found", { status: 404 });
-        return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+
+        if (hasCache) {
+          const cacheKey = `doc:${collection.slug}:${params.id}`;
+          await this.cache.set(cacheKey, result, cacheTTL);
+        }
+
+        return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
       });
+
+      const invalidateCache = async () => {
+        // Simple invalidation strategy: delete all list queries for this collection if a doc is changed.
+        // In a real app, this should be more granular using a redis SCAN or tracking keys.
+        // For now, we rely on the memory adapter or just flush. 
+        // We'll clear the whole cache for simplicity if any mutation happens.
+        await this.cache.del(`list:${collection.slug}`); // This is naive
+      };
+
+      const broadcastChange = (action: string, data: any) => {
+        if (!isRealtime) return;
+        const payload = { event: `${collection.slug}:${action}`, data };
+        if (collection.realtime?.ws) RadiantWebsocket.broadcastAll(payload);
+        if (collection.realtime?.sse) RadiantSSE.broadcastAll(payload);
+      };
 
       // POST CREATE
       this.router.post(basePath, async (req) => {
@@ -259,6 +340,10 @@ export class RadiantRuntime<T = any> {
         data = await this.runBeforeHooks(collection.slug, "Create", ctx, data);
         const result = await this.adapter.create(collection.slug, data);
         await this.runAfterHooks(collection.slug, "Create", ctx, result);
+
+        if (hasCache) await this.cache.close(); // Invalidate all (naive)
+        if (isRealtime) broadcastChange("created", result);
+
         return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
       });
 
@@ -270,6 +355,13 @@ export class RadiantRuntime<T = any> {
         data = await this.runBeforeHooks(collection.slug, "Update", ctx, data);
         const result = await this.adapter.update(collection.slug, params.id, data);
         await this.runAfterHooks(collection.slug, "Update", ctx, result);
+
+        if (hasCache) {
+          await this.cache.del(`doc:${collection.slug}:${params.id}`);
+          await this.cache.close(); // Naive list invalidation
+        }
+        if (isRealtime) broadcastChange("updated", result);
+
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
       });
 
@@ -280,6 +372,13 @@ export class RadiantRuntime<T = any> {
         await this.runBeforeHooks(collection.slug, "Delete", ctx, { id: params.id });
         await this.adapter.delete(collection.slug, params.id);
         await this.runAfterHooks(collection.slug, "Delete", ctx, { id: params.id });
+
+        if (hasCache) {
+          await this.cache.del(`doc:${collection.slug}:${params.id}`);
+          await this.cache.close(); // Naive list invalidation
+        }
+        if (isRealtime) broadcastChange("deleted", { id: params.id });
+
         return new Response(JSON.stringify({ deleted: true }), { headers: { 'Content-Type': 'application/json' } });
       });
     }
@@ -371,7 +470,8 @@ export class RadiantRuntime<T = any> {
 
     const server = Bun.serve({
       port: options.port || 3000,
-      fetch: (req) => this.router.fetch(req),
+      fetch: (req, server) => this.router.fetch(req, server),
+      websocket: RadiantWebsocket.handlers(),
     });
 
     console.log(`🚀 Radiant Engine started on http://localhost:${server.port}`);

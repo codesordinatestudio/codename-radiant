@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { buildCommand } from './cli';
 import { devCommand } from './dev';
+import { initCommand } from './init';
 
 const program = new Command();
 
@@ -15,6 +16,13 @@ program.command('build')
   .option('-d, --dir <path>', 'Path to the radiant directory')
   .action((options) => {
     buildCommand(options);
+  });
+
+program.command('init')
+  .description('Initialize a new Radiant project in the current directory')
+  .option('-d, --dir <path>', 'Path to initialize the radiant project')
+  .action((options) => {
+    initCommand(options);
   });
 
 program.command('dev')

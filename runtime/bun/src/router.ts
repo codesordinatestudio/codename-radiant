@@ -1,4 +1,4 @@
-export type RouteHandler = (req: Request, params: Record<string, string>) => Response | Promise<Response>;
+export type RouteHandler = (req: Request, params: Record<string, string>, server?: any) => Response | Promise<Response> | any;
 
 export class RadiantRouter {
   private prefix: string;
@@ -36,7 +36,7 @@ export class RadiantRouter {
   patch(path: string, handler: RouteHandler) { this.add('PATCH', path, handler); }
   delete(path: string, handler: RouteHandler) { this.add('DELETE', path, handler); }
 
-  async fetch(req: Request): Promise<Response> {
+  async fetch(req: Request, server?: any): Promise<Response> {
     const url = new URL(req.url);
 
     // Preflight CORS
@@ -56,7 +56,8 @@ export class RadiantRouter {
         if (match) {
           try {
             // Add CORS headers to all responses
-            const res = await route.handler(req, match.pathname.groups);
+            const res = await route.handler(req, match.pathname.groups, server);
+            if (!res) return res as any; // Allow undefined for WebSocket upgrades
             res.headers.set('Access-Control-Allow-Origin', '*');
             return res;
           } catch (e: any) {

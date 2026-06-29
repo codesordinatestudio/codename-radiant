@@ -477,4 +477,88 @@ describe('RadiantRuntime', () => {
       expect(refreshRes.status).toBe(401); // Invalid or expired
     });
   });
-});
+  });
+
+  describe('Caching & Realtime & Storage', () => {
+    let mockAdapter: any;
+    beforeEach(() => {
+      mockAdapter = {
+        connect: async () => {},
+        create: async () => ({}),
+        find: async () => ({ docs: [], total: 0 }),
+        findById: async () => null,
+        update: async () => ({}),
+        delete: async () => {}
+      };
+    });
+
+    test('Cache is hit on subsequent GET requests', async () => {
+      const schema: any = {
+        core: { api: { prefix: "/api" } },
+        collections: [
+          { slug: "todos", cache: { ttl: 60 } }
+        ]
+      };
+      
+      mockAdapter.find = async () => ({ docs: [{ id: "1", title: "Test" }], total: 1 });
+      const runtime = new RadiantRuntime(schema, { adapter: mockAdapter });
+      await runtime.buildRoutes();
+      
+      const req1 = new Request("http://localhost:3000/api/todos");
+      const res1 = await runtime.router.fetch(req1);
+      expect(res1.headers.get("X-Cache")).toBe("MISS");
+      
+      const req2 = new Request("http://localhost:3000/api/todos");
+      const res2 = await runtime.router.fetch(req2);
+      expect(res2.headers.get("X-Cache")).toBe("HIT");
+    });
+    
+    test('Cache is invalidated on POST', async () => {
+      const schema: any = {
+        core: { api: { prefix: "/api" } },
+        collections: [
+          { slug: "todos", cache: { ttl: 60 } }
+        ]
+      };
+      
+      mockAdapter.find = async () => ({ docs: [{ id: "1", title: "Test" }], total: 1 });
+      const runtime = new RadiantRuntime(schema, { adapter: mockAdapter });
+      await runtime.buildRoutes();
+      
+      const req1 = new Request("http://localhost:3000/api/todos");
+      await runtime.router.fetch(req1);
+      
+      const reqPost = new Request("http://localhost:3000/api/todos", { method: "POST", body: JSON.stringify({ title: "New" }) });
+      await runtime.router.fetch(reqPost);
+      
+      const req2 = new Request("http://localhost:3000/api/todos");
+      const res2 = await runtime.router.fetch(req2);
+      expect(res2.headers.get("X-Cache")).toBe("MISS");
+    });
+
+    test('Upload endpoint handles file upload and returns url', async () => {
+      const schema: any = {
+        core: { api: { prefix: "/api" } },
+        collections: []
+      };
+      
+      const runtime = new RadiantRuntime(schema, { adapter: mockAdapter });
+      await runtime.buildRoutes();
+
+      const formData = new FormData();
+      formData.append("file", new File(["test file content"], "test.txt", { type: "text/plain" }));
+      
+      const req = new Request("http://localhost:3000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const res = await runtime.router.fetch(req);
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.url).toBeDefined();
+      expect(data.originalName).toBe("test.txt");
+    });
+  });
+
+

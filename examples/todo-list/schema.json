@@ -36,7 +36,15 @@
           "type": "link",
           "target": "users"
         }
-      ]
+      ],
+      "realtime": {
+        "ws": true,
+        "sse": true
+      },
+      "cache": {
+        "strategy": "stale-while-revalidate",
+        "ttl": 3600
+      }
     }
   ],
   "core": {

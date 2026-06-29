@@ -61,6 +61,15 @@ export interface RadiantAST {
 export interface CollectionConfig {
   slug: string;
   auth?: boolean;
+  realtime?: {
+    ws?: boolean;
+    sse?: boolean;
+    durableStream?: boolean;
+  };
+  cache?: {
+    ttl?: string | number;
+    strategy?: "stale-while-revalidate" | string;
+  };
   fields: FieldConfig[];
 }
 
@@ -72,4 +81,29 @@ export interface FieldConfig {
   default?: any;
   target?: string; // For link fields
   values?: string[]; // For enum fields
+}
+
+export interface UploadedFile {
+  filename: string;
+  originalName: string;
+  mimetype: string;
+  size: number;
+  url: string;
+}
+
+export interface StorageProvider {
+  saveFile(file: File, options?: { filename?: string }): Promise<UploadedFile>;
+  deleteFile(filename: string): Promise<void>;
+}
+
+export interface CacheStore {
+  get(key: string): Promise<any | null>;
+  set(key: string, value: any, ttlSeconds?: number): Promise<void>;
+  del(...keys: string[]): Promise<number>;
+  close(): void;
+}
+
+export interface RadiantPlugin {
+  name: string;
+  onInit: (app: any) => void | Promise<void>;
 }

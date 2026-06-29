@@ -59,7 +59,7 @@ export function generateTypeScript(schema: any): string {
 function mapToTsType(field: any): string {
   let baseType = 'any';
   
-  if (field.type === 'string' || field.type === 'text' || field.type === 'email' || field.type === 'password') {
+  if (field.type === 'string' || field.type === 'text' || field.type === 'email' || field.type === 'password' || field.type === 'file' || field.type === 'upload') {
     baseType = 'string';
   } else if (field.type === 'boolean') {
     baseType = 'boolean';
