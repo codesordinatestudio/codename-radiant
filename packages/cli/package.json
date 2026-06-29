@@ -6,7 +6,7 @@
     "radiant": "./bin/radiant"
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --compile --outfile bin/radiant",
+    "build": "bun build ./src/index.ts --compile --outfile .bin/radiant",
     "dev": "bun run src/index.ts"
   },
   "dependencies": {
