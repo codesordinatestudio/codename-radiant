@@ -236,6 +236,33 @@ describe('RadiantRuntime', () => {
       expect(data.id).toBeDefined();
     });
 
+    test('PATCH updates an existing document', async () => {
+      const req = new Request('http://localhost/api/posts/1', {
+        method: 'PATCH',
+        body: JSON.stringify({ title: 'Updated Post' })
+      });
+      const res = await runtime.router.fetch(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.title).toBe('Updated Post');
+      expect(data.id).toBe('1');
+    });
+
+    test('DELETE removes an existing document', async () => {
+      const req = new Request('http://localhost/api/posts/1', {
+        method: 'DELETE'
+      });
+      const res = await runtime.router.fetch(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.deleted).toBe(true);
+
+      // Verify it's actually deleted
+      const fetchReq = new Request('http://localhost/api/posts/1');
+      const fetchRes = await runtime.router.fetch(fetchReq);
+      expect(fetchRes.status).toBe(404);
+    });
+
     test('Access rules block unauthorized requests', async () => {
       runtime.access('posts', {
         read: async () => false, // deny all reads

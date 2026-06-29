@@ -43,6 +43,20 @@ describe('Compiler', () => {
     expect(errors[2].message).toContain("Unknown property 'invalidSec' in security block");
   });
 
+  test('reports errors for unknown monitoring properties', () => {
+    const ast = mockRawAst([{
+      type: 'config',
+      token: dummyToken,
+      body: [
+        { name: 'monitoring', nameToken: dummyToken, value: { type: 'object', properties: [{ name: 'invalidMon', nameToken: dummyToken, value: true }] } }
+      ]
+    }]);
+
+    const { errors } = compile([ast]);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("Unknown property 'invalidMon' in monitoring block");
+  });
+
   test('reports error for duplicate collection names', () => {
     const ast = mockRawAst([
       { type: 'collection', name: 'users', nameToken: dummyToken, body: [] },
