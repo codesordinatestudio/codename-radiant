@@ -1,0 +1,16 @@
+{
+  "collections": [],
+  "core": {
+    "api": {
+      "prefix": ""
+    }
+  },
+  "security": {
+    "cors": { "enabled": false },
+    "headers": { "enabled": false }
+  },
+  "monitoring": {
+    "healthCheck": { "enabled": false },
+    "requestId": { "enabled": false }
+  }
+}

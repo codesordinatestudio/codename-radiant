@@ -134,8 +134,6 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   async buildRoutes() {
-    await this.adapter.connect();
-
     const prefix = this.schema.core?.api?.prefix || '/api';
 
     // 1. Mount OpenAPI / Scalar Documentation
@@ -490,6 +488,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   async start(options: { port?: number } = {}) {
+    await this.adapter.connect();
     await this.syncDatabaseSchema();
     await this.buildRoutes();
 

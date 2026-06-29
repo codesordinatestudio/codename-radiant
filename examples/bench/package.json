@@ -1,0 +1,17 @@
+{
+  "name": "radiant-bench",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "bun run compare.ts"
+  },
+  "dependencies": {
+    "autocannon": "^7.15.0",
+    "numeral": "^2.0.6",
+    "elysia": "^1.4.28",
+    "@sinclair/typebox": "^0.34.49"
+  },
+  "devDependencies": {
+    "@types/numeral": "^2.0.5",
+    "bun-types": "^1.2.0"
+  }
+}
