@@ -1,84 +1,86 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'fs';
-import { join } from 'path';
-import { execSync } from 'child_process';
-import { randomBytes } from 'crypto';
-import * as p from '@clack/prompts';
-import pc from 'picocolors';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "fs";
+import { join } from "path";
+import { execSync } from "child_process";
+import { randomBytes } from "crypto";
+import * as p from "@clack/prompts";
+import pc from "picocolors";
 
 export async function scaffoldTsProject(rootDir: string) {
-  const pkgJsonPath = join(rootDir, 'package.json');
+  const pkgJsonPath = join(rootDir, "package.json");
   if (!existsSync(pkgJsonPath)) {
-    p.intro(pc.bgMagenta(pc.white(' Radiant Framework ')));
+    p.intro(pc.bgMagenta(pc.white(" Radiant Framework ")));
 
     const s = p.spinner();
 
-    s.start('Initializing a new Bun project');
-    execSync('bun init -y', { stdio: 'ignore', cwd: rootDir });
-    const defaultIndex = join(rootDir, 'index.ts');
+    s.start("Initializing a new Bun project");
+    execSync("bun init -y", { stdio: "ignore", cwd: rootDir });
+    const defaultIndex = join(rootDir, "index.ts");
     if (existsSync(defaultIndex)) rmSync(defaultIndex);
-    s.stop('Bun project initialized');
-    
+    s.stop("Bun project initialized");
+
     let dbChoice = "1";
-    if (process.env.NODE_ENV !== 'test') {
+    if (process.env.NODE_ENV !== "test") {
       const dbSelect = await p.select({
-        message: 'Choose your Database Adapter',
+        message: "Choose your Database Adapter",
         options: [
-          { value: '1', label: 'Memory', hint: 'Default, Development only' },
-          { value: '2', label: 'PostgreSQL' }
+          { value: "1", label: "Memory", hint: "Default, Development only" },
+          { value: "2", label: "PostgreSQL" },
         ],
       });
       if (p.isCancel(dbSelect)) {
-        p.cancel('Operation cancelled.');
+        p.cancel("Operation cancelled.");
         process.exit(0);
       }
       dbChoice = dbSelect as string;
     }
 
-    const usePostgres = dbChoice === '2';
+    const usePostgres = dbChoice === "2";
 
     let isLinked = false;
 
-    if (process.env.NODE_ENV !== 'test') {
-      s.start('Installing @codesordinatestudio/radiant-bun');
-      let installCmd = 'bun add @codesordinatestudio/radiant-bun@latest';
+    if (process.env.NODE_ENV !== "test") {
+      s.start("Installing @codesordinatestudio/radiant-bun");
+      let installCmd = "bun add @codesordinatestudio/radiant-bun@latest";
       if (usePostgres) {
-        installCmd += ' @codesordinatestudio/radiant-plugin-postgres@latest';
+        installCmd += " @codesordinatestudio/radiant-plugin-postgres@latest";
       }
       try {
-        execSync(installCmd, { stdio: 'ignore', cwd: rootDir });
-        s.stop('Dependencies installed from NPM');
+        execSync(installCmd, { stdio: "ignore", cwd: rootDir });
+        s.stop("Dependencies installed from NPM");
       } catch (e) {
-        s.stop('NPM fetch failed. Using local linked packages');
+        s.stop("NPM fetch failed. Using local linked packages");
         isLinked = true;
-        p.note('Will write link: dependencies to package.json', 'Fallback');
+        p.note("Will write link: dependencies to package.json", "Fallback");
       }
     }
 
-    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
     pkgJson.scripts = {
       ...pkgJson.scripts,
-      "dev": "bun run --hot src/index.ts",
-      "build": "bun build src/index.ts --outdir dist --target bun"
+      dev: "bun run --hot src/index.ts",
+      build: "bun build src/index.ts --outdir dist --target bun",
     };
     pkgJson.dependencies = {
       ...pkgJson.dependencies,
-      "@codesordinatestudio/radiant-bun": isLinked ? "link:@codesordinatestudio/radiant-bun" : "latest"
+      "@codesordinatestudio/radiant-bun": isLinked ? "link:@codesordinatestudio/radiant-bun" : "latest",
     };
     if (usePostgres) {
-      pkgJson.dependencies["@codesordinatestudio/radiant-plugin-postgres"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-postgres" : "latest";
+      pkgJson.dependencies["@codesordinatestudio/radiant-plugin-postgres"] = isLinked
+        ? "link:@codesordinatestudio/radiant-plugin-postgres"
+        : "latest";
     }
     writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
 
-    if (process.env.NODE_ENV !== 'test') {
-      s.start('Running bun install');
-      execSync('bun install', { stdio: 'ignore', cwd: rootDir });
-      s.stop('Packages installed');
+    if (process.env.NODE_ENV !== "test") {
+      s.start("Running bun install");
+      execSync("bun install", { stdio: "ignore", cwd: rootDir });
+      s.stop("Packages installed");
     }
 
-    const srcDir = join(rootDir, 'src');
+    const srcDir = join(rootDir, "src");
     if (!existsSync(srcDir)) mkdirSync(srcDir);
 
-    const publicDir = join(rootDir, 'public');
+    const publicDir = join(rootDir, "public");
     if (!existsSync(publicDir)) mkdirSync(publicDir);
 
     const indexHtmlContent = `<!doctype html>
@@ -282,10 +284,10 @@ export async function scaffoldTsProject(rootDir: string) {
   </div>
 </body>
 </html>`;
-    writeFileSync(join(publicDir, 'index.html'), indexHtmlContent);
+    writeFileSync(join(publicDir, "index.html"), indexHtmlContent);
 
     let imports = `import { createRadiant } from "../radiant/runtime";\n`;
-    let adapterConfig = '';
+    let adapterConfig = "";
 
     if (usePostgres) {
       imports += `import { postgres } from "@codesordinatestudio/radiant-plugin-postgres";\n`;
@@ -300,14 +302,14 @@ export const app = createRadiant({
 ${adapterConfig}
 });
 `;
-    writeFileSync(join(srcDir, 'app.ts'), appTsContent);
+    writeFileSync(join(srcDir, "app.ts"), appTsContent);
 
     const accessTsContent = `import { app } from "./app";
 
 // Attach access control rules
 // e.g., app.access("users", { read: () => true });
 `;
-    writeFileSync(join(srcDir, 'access.ts'), accessTsContent);
+    writeFileSync(join(srcDir, "access.ts"), accessTsContent);
 
     const customRoutesTsContent = `import { app } from "./app";
 
@@ -316,7 +318,7 @@ app.router.get("/greeting", () => {
   return Response.json({ greeting: "hello from radiant" });
 });
 `;
-    writeFileSync(join(srcDir, 'custom-routes.ts'), customRoutesTsContent);
+    writeFileSync(join(srcDir, "custom-routes.ts"), customRoutesTsContent);
 
     const indexTsContent = `import { app } from "./app";
 
@@ -331,19 +333,19 @@ app.router.get("/", () => {
 
 app.start({ port: 3000 }).catch(console.error);
 `;
-    writeFileSync(join(srcDir, 'index.ts'), indexTsContent);
+    writeFileSync(join(srcDir, "index.ts"), indexTsContent);
 
-    let envContent = `JWT_SECRET=${randomBytes(16).toString('hex')}\n`;
+    let envContent = `JWT_SECRET=${randomBytes(16).toString("hex")}\n`;
     if (usePostgres) {
-      envContent += `DATABASE_URL=postgres://postgres:postgres@localhost:5432/radiant_app\n`;
+      envContent += `DATABASE_URL=postgres://postgres:password123@localhost:5432/radiant_app\n`;
     }
-    writeFileSync(join(rootDir, '.env'), envContent);
+    writeFileSync(join(rootDir, ".env"), envContent);
 
     p.note(
-      `${pc.blue('src/app.ts')} created with app initialization\n${pc.blue('src/access.ts')} created for access rules\n${pc.blue('src/custom-routes.ts')} created for custom routes\n${pc.blue('src/index.ts')} created with server implementation\n${pc.blue('.env')} created with JWT_SECRET`,
-      'Scaffold Complete'
+      `${pc.blue("src/app.ts")} created with app initialization\n${pc.blue("src/access.ts")} created for access rules\n${pc.blue("src/custom-routes.ts")} created for custom routes\n${pc.blue("src/index.ts")} created with server implementation\n${pc.blue(".env")} created with JWT_SECRET`,
+      "Scaffold Complete",
     );
 
-    p.outro(`✨ All set! Run ${pc.green('radiant dev')} to start coding!`);
+    p.outro(`✨ All set! Run ${pc.green("radiant dev")} to start coding!`);
   }
 }
