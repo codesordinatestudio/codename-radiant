@@ -335,11 +335,18 @@ ${adapterConfig}
     writeFileSync(join(srcDir, "access.ts"), accessTsContent);
 
     const customRoutesTsContent = `import { app } from "./app";
+import { t } from "@codesordinatestudio/radiant-bun";
 
 // Custom routes
-app.router.get("/greeting", () => {
-  return Response.json({ greeting: "hello from radiant" });
-});
+app.router.get(
+  "/greeting",
+  () => ({ greeting: "hello from radiant" }),
+  {
+    response: t.Object({
+      greeting: t.String(),
+    }),
+  }
+);
 `;
     writeFileSync(join(srcDir, "custom-routes.ts"), customRoutesTsContent);
 
