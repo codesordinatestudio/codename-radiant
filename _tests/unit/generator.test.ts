@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { generateTypeScript } from '../../packages/cli/src/generator/ts';
+import { generateTypeScriptTypes, generateTypeScriptRuntime } from '../../packages/cli/src/generator/ts';
 
 describe('TypeScript Generator', () => {
   test('generates basic core models, omitting password', () => {
@@ -17,7 +17,7 @@ describe('TypeScript Generator', () => {
       ]
     };
 
-    const output = generateTypeScript(schema);
+    const output = generateTypeScriptTypes(schema);
     
     // Core Model check
     expect(output).toContain('export interface Users {');
@@ -51,7 +51,7 @@ describe('TypeScript Generator', () => {
       ]
     };
 
-    const output = generateTypeScript(schema);
+    const output = generateTypeScriptTypes(schema);
     expect(output).toContain('export interface Posts {');
     expect(output).toContain('  tags: string[];');
     expect(output).toContain('  role: "admin" | "user";');
@@ -77,7 +77,7 @@ describe('TypeScript Generator', () => {
       ]
     };
 
-    const output = generateTypeScript(schema);
+    const output = generateTypeScriptTypes(schema);
     expect(output).toContain('  metadata: { ip: string; browser: string; };');
   });
 
@@ -95,7 +95,7 @@ describe('TypeScript Generator', () => {
       ]
     };
 
-    const output = generateTypeScript(schema);
+    const output = generateTypeScriptTypes(schema);
     expect(output).toContain('export interface ProductsWhereClause {');
     
     // Number type where clause
@@ -120,10 +120,14 @@ describe('TypeScript Generator', () => {
       ]
     };
 
-    const output = generateTypeScript(schema);
+    const output = generateTypeScriptTypes(schema);
     expect(output).toContain('export type Collections = {');
     expect(output).toContain('  users: Users;');
     expect(output).toContain('  posts: Posts;');
     expect(output).toContain('};');
+    
+    const runtimeOutput = generateTypeScriptRuntime(schema);
+    expect(runtimeOutput).toContain("import type { Collections } from '../radiant-types'");
+    expect(runtimeOutput).toContain('export function createRadiant(config: RadiantConfig)');
   });
 });

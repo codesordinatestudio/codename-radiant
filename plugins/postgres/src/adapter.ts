@@ -435,7 +435,7 @@ export class PostgresAdapter implements LucentAdapter {
 
     // Extract _total from the first row (all rows carry the same value).
     // If no rows matched, totalDocs is 0.
-    const totalDocs = rows.length > 0 ? Number(rows[0]._total) : 0;
+    const totalDocs = rows.length > 0 ? Number(rows[0]?._total) : 0;
 
     const docs = rows.map((row: Record<string, unknown>) => {
       // Strip the synthetic _total column before returning.

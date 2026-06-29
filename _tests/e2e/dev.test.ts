@@ -11,6 +11,7 @@ describe('Dev Watcher E2E', () => {
   beforeAll(async () => {
     await rm(TEST_DIR, { recursive: true, force: true });
     await mkdir(RADIANT_DIR, { recursive: true });
+    await writeFile(join(TEST_DIR, 'package.json'), '{}');
   });
 
   afterAll(async () => {

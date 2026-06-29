@@ -34,7 +34,7 @@ export type TodosUpdate = Partial<TodosCreate>;
 // 3. Query Builder Types
 export interface UsersWhereClause {
   name?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };
-  role?: { eq?: "admin" | "user"; neq?: "admin" | "user"; in?: Array<"admin" | "user">; nin?: Array<"admin" | "user">; exists?: boolean };
+  role?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };
   and?: UsersWhereClause[];
   or?: UsersWhereClause[];
 }

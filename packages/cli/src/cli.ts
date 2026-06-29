@@ -2,13 +2,14 @@ import { readFileSync, writeFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { globSync } from 'glob'; // Wait, bun has a glob API or we can just use node fs, but let's just use a simple read for now. Wait, glob is better. I'll just use bun's glob or standard Node `fs.readdirSync`.
 import { readdirSync, statSync } from 'fs';
+import pc from 'picocolors';
 
 import { RadiantLexer } from './parser/lexer';
 import { parserInstance } from './parser/parser';
 import { visitorInstance } from './parser/visitor';
 import { compile } from './compiler';
-import { generateTypeScript } from './generator/ts';
-
+import { generateTypeScriptTypes, generateTypeScriptRuntime } from './generator/ts';
+import { mkdirSync } from 'fs';
 function findRadiantFiles(dir: string): string[] {
   let results: string[] = [];
   try {
@@ -33,7 +34,7 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
   const files = findRadiantFiles(dir);
 
   if (files.length === 0) {
-    console.warn(`No .radiant files found in ${dir}`);
+    console.warn(pc.yellow(`⚠️ No .radiant files found in ${dir}`));
     return;
   }
 
@@ -44,8 +45,8 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     const lexResult = RadiantLexer.tokenize(text);
 
     if (lexResult.errors.length > 0) {
-      console.error(`Lexing errors in ${file}:`);
-      lexResult.errors.forEach(err => console.error(err.message));
+      console.error(pc.red(`\n✖ Lexing errors in ${file}:`));
+      lexResult.errors.forEach(err => console.error(pc.red(`  ${err.message}`)));
       if (!options.isDev) process.exit(1);
       return;
     }
@@ -54,8 +55,8 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     const cst = parserInstance.radiantFile();
 
     if (parserInstance.errors.length > 0) {
-      console.error(`Parsing errors in ${file}:`);
-      parserInstance.errors.forEach(err => console.error(err.message));
+      console.error(pc.red(`\n✖ Parsing errors in ${file}:`));
+      parserInstance.errors.forEach(err => console.error(pc.red(`  ${err.message}`)));
       if (!options.isDev) process.exit(1);
       return;
     }
@@ -67,8 +68,8 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
   try {
     const { schema: finalSchema, errors } = compile(rawAsts);
     if (errors.length > 0) {
-      console.error(`Semantic errors during compilation:`);
-      errors.forEach(err => console.error(`- ${err.message}`));
+      console.error(pc.red(`\n✖ Semantic errors during compilation:`));
+      errors.forEach(err => console.error(pc.red(`  - ${err.message}`)));
       if (!options.isDev) process.exit(1);
       return;
     }
@@ -80,7 +81,11 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
       outDir = resolve(dir, configOutput);
     }
     
-    const outputPath = resolve(outDir, 'schema.json');
+    // Ensure runtime directory exists
+    const runtimeDir = resolve(outDir, 'runtime');
+    mkdirSync(runtimeDir, { recursive: true });
+
+    const outputPath = resolve(runtimeDir, 'schema.json');
     
     // Strip internal compiler metadata out of the final JSON schema
     const cleanJson = JSON.stringify(finalSchema, (key, value) => {
@@ -91,16 +96,21 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     }, 2);
     
     writeFileSync(outputPath, cleanJson, 'utf-8');
-    console.log(`Successfully built ${outputPath}`);
+    console.log(`${pc.green('✔')} Built ${pc.cyan(outputPath)}`);
 
     if (options.runtime === 'ts' || !options.runtime) {
-      const typesOutput = generateTypeScript(finalSchema);
-      const typesPath = resolve(outDir, 'index.ts');
+      const typesOutput = generateTypeScriptTypes(finalSchema);
+      const typesPath = resolve(projectRoot, 'radiant-types.ts');
       writeFileSync(typesPath, typesOutput, 'utf-8');
-      console.log(`Successfully generated ${typesPath}`);
+      console.log(`${pc.green('✔')} Generated ${pc.cyan(typesPath)}`);
+
+      const runtimeOutput = generateTypeScriptRuntime(finalSchema);
+      const runtimePath = resolve(outDir, 'runtime.ts');
+      writeFileSync(runtimePath, runtimeOutput, 'utf-8');
+      console.log(`${pc.green('✔')} Generated ${pc.cyan(runtimePath)}`);
     }
   } catch (err: any) {
-    console.error(`Compilation error: ${err.message}`);
+    console.error(pc.red(`\n✖ Compilation error: ${err.message}`));
     if (!options.isDev) process.exit(1);
     return;
   }

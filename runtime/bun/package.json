@@ -20,6 +20,7 @@
     "build": "bun build ./src/index.ts ./core/index.ts --outdir ./dist --target bun && tsc --emitDeclarationOnly"
   },
   "dependencies": {
+    "@sinclair/typebox": "^0.34.49",
     "jose": "^6.2.3"
   }
 }
