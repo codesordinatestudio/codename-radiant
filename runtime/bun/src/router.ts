@@ -2,11 +2,13 @@ import type { TSchema, Static } from "@sinclair/typebox";
 import { TypeCompiler, type TypeCheck } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
 import { RadiantError } from "./error";
-import type { any, RadiantRuntime, any, any } from "@codesordinatestudio/radiant-core";
+import type { RadiantRuntime } from "./runtime";
+import type { RadiantAST } from "../core/types";
 import type { RadiantRouteContext, RadiantParams, RadiantQuery } from "./request";
 import { methodNotAllowed, notFound, routeErrorToResponse, toResponse, type BunRouteResult } from "./response";
 
 export type RadiantRouteHandler<
+  TCollections extends Record<string, any> = any,
   TState = unknown,
   TParams extends TSchema | undefined = undefined,
   TQuery extends TSchema | undefined = undefined,
@@ -14,6 +16,7 @@ export type RadiantRouteHandler<
   TResponse extends TSchema | undefined = undefined,
 > = (
   context: RadiantRouteContext<
+    TCollections,
     TState,
     TParams extends TSchema ? Static<TParams> : RadiantParams,
     TQuery extends TSchema ? Static<TQuery> : RadiantQuery,
@@ -48,6 +51,7 @@ export interface RadiantRouteOptions<
 }
 
 export interface RadiantRoute<
+  TCollections extends Record<string, any> = any,
   TState = unknown,
   TParams extends TSchema | undefined = undefined,
   TQuery extends TSchema | undefined = undefined,
@@ -56,17 +60,18 @@ export interface RadiantRoute<
 > {
   method: string;
   path: string;
-  handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>;
+  handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>;
   options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>;
 }
 
 interface CompiledRoute<
+  TCollections extends Record<string, any> = any,
   TState = unknown,
   TParams extends TSchema | undefined = undefined,
   TQuery extends TSchema | undefined = undefined,
   TBody extends TSchema | undefined = undefined,
   TResponse extends TSchema | undefined = undefined,
-> extends RadiantRoute<TState, TParams, TQuery, TBody, TResponse> {
+> extends RadiantRoute<TCollections, TState, TParams, TQuery, TBody, TResponse> {
   segments: string[];
   bodyCoercer?: SchemaCoercer;
   queryCoercer?: SchemaCoercer;
@@ -126,7 +131,7 @@ function splitPath(path: string): string[] {
   return normalized.slice(1).split("/");
 }
 
-function matchPath<TState>(route: CompiledRoute<TState>, pathname: string): RadiantParams | null {
+function matchPath<TState>(route: CompiledRoute<any, TState>, pathname: string): RadiantParams | null {
   const requestSegments = splitPath(pathname);
   if (route.segments.length !== requestSegments.length) return null;
 
@@ -344,14 +349,14 @@ function readBody(request: Request): Promise<unknown> | unknown {
 }
 
 function createRouteContext<TState>(
-  route: CompiledRoute<TState, any, any, any, any>,
+  route: CompiledRoute<any, TState, any, any, any, any>,
   request: Request,
   params: RadiantParams,
   state: TState | undefined,
   user: RadiantRouteContext["user"],
   body: unknown,
   radiant?: RadiantRuntime,
-): RadiantRouteContext<TState, any, any, any> {
+): RadiantRouteContext<any, TState, any, any, any> {
   let url: URL | undefined;
   let parsedQuery: RadiantQuery | undefined;
 
@@ -380,8 +385,8 @@ function createRouteContext<TState>(
   };
 }
 
-export class RadiantRouter<TState = unknown> {
-  private routes: CompiledRoute<TState, any, any, any, any>[] = [];
+export class RadiantRouter<TCollections extends Record<string, any> = any, TState = unknown> {
+  private routes: CompiledRoute<TCollections, TState, any, any, any, any>[] = [];
 
   add<
     TParams extends TSchema | undefined = undefined,
@@ -391,7 +396,7 @@ export class RadiantRouter<TState = unknown> {
   >(
     method: string,
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     const normalizedPath = normalizePath(path);
@@ -399,7 +404,7 @@ export class RadiantRouter<TState = unknown> {
       method: method.toUpperCase(),
       path: normalizedPath,
       segments: splitPath(normalizedPath),
-      handler: handler as RadiantRouteHandler<TState, any, any, any, any>,
+      handler: handler as RadiantRouteHandler<TCollections, TState, any, any, any, any>,
       options: options as RadiantRouteOptions<any, any, any, any>,
       bodyCoercer: createSchemaCoercer(options?.body, "Body"),
       queryCoercer: createSchemaCoercer(options?.query, "Query"),
@@ -416,7 +421,7 @@ export class RadiantRouter<TState = unknown> {
     TResponse extends TSchema | undefined = undefined,
   >(
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     return this.add("GET", path, handler, options);
@@ -429,7 +434,7 @@ export class RadiantRouter<TState = unknown> {
     TResponse extends TSchema | undefined = undefined,
   >(
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     return this.add("POST", path, handler, options);
@@ -442,7 +447,7 @@ export class RadiantRouter<TState = unknown> {
     TResponse extends TSchema | undefined = undefined,
   >(
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     return this.add("PUT", path, handler, options);
@@ -455,7 +460,7 @@ export class RadiantRouter<TState = unknown> {
     TResponse extends TSchema | undefined = undefined,
   >(
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     return this.add("PATCH", path, handler, options);
@@ -468,7 +473,7 @@ export class RadiantRouter<TState = unknown> {
     TResponse extends TSchema | undefined = undefined,
   >(
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     return this.add("DELETE", path, handler, options);
@@ -481,17 +486,17 @@ export class RadiantRouter<TState = unknown> {
     TResponse extends TSchema | undefined = undefined,
   >(
     path: string,
-    handler: RadiantRouteHandler<TState, TParams, TQuery, TBody, TResponse>,
+    handler: RadiantRouteHandler<TCollections, TState, TParams, TQuery, TBody, TResponse>,
     options?: RadiantRouteOptions<TParams, TQuery, TBody, TResponse>,
   ): this {
     return this.add("ALL", path, handler, options);
   }
 
-  list(): RadiantRoute<TState, any, any, any, any>[] {
+  list(): RadiantRoute<TCollections, TState, any, any, any, any>[] {
     return this.routes.map(({ method, path, handler, options }) => ({ method, path, handler, options }));
   }
 
-  use(routes: RadiantRouter<TState> | RadiantRoute<TState, any, any, any, any>[] | undefined | null): this {
+  use(routes: RadiantRouter<TCollections, TState> | RadiantRoute<TCollections, TState, any, any, any, any>[] | undefined | null): this {
     if (!routes) return this;
     const routeList = routes instanceof RadiantRouter ? routes.list() : routes;
     for (const route of routeList) {
@@ -502,7 +507,7 @@ export class RadiantRouter<TState = unknown> {
 
   toNativeRoutes(options: RadiantNativeRouteOptions<TState> = {}): RadiantNativeRoutes {
     const nativeRoutes: RadiantNativeRoutes = {};
-    const grouped = new Map<string, CompiledRoute<TState, any, any, any, any>[]>();
+    const grouped = new Map<string, CompiledRoute<TCollections, TState, any, any, any, any>[]>();
     const headers = Object.entries(options.headers ?? {});
     const hasMonitoring = options.monitoring?.hasHandlers?.() === true;
     const shouldResolveUser = options.resolveUser !== undefined;
@@ -559,7 +564,7 @@ export class RadiantRouter<TState = unknown> {
       grouped.set(route.path, routes);
     }
 
-    const createHandler = (route: CompiledRoute<TState, any, any, any, any>): NativeBunRouteHandler => {
+    const createHandler = (route: CompiledRoute<TCollections, TState, any, any, any, any>): NativeBunRouteHandler => {
       return (request, server) => {
         const startedAt = hasMonitoring ? performance.now() : 0;
         const pathname = hasMonitoring ? getPathname(request.url) : "";
@@ -832,7 +837,8 @@ export class RadiantRouter<TState = unknown> {
   async handle(
     request: Request,
     state?: TState,
-    user: RadiantRouteContext["user"] = null,
+    user: RadiantRouteContext<any>["user"] = null,
+    radiant?: import("./runtime").RadiantRuntime<any>
   ): Promise<Response | undefined> {
     const url = new URL(request.url);
     const method = request.method.toUpperCase();
@@ -848,7 +854,7 @@ export class RadiantRouter<TState = unknown> {
       }
 
       const body = route.shouldReadBody ? route.bodyCoercer?.(await readBody(request)) : undefined;
-      const context = createRouteContext(route, request, params, state, user, body);
+      const context = createRouteContext(route, request, params, state, user, body, radiant);
       return toResponse(await route.handler(context));
     }
 
@@ -860,6 +866,6 @@ export class RadiantRouter<TState = unknown> {
   }
 }
 
-export function createRouter<TState = unknown>(): RadiantRouter<TState> {
-  return new RadiantRouter<TState>();
+export function createRouter<TCollections extends Record<string, any> = any, TState = unknown>(): RadiantRouter<TCollections, TState> {
+  return new RadiantRouter<TCollections, TState>();
 }

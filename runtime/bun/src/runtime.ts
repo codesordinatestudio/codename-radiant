@@ -14,16 +14,16 @@ export interface RadiantConfig {
   cache?: CacheStore;
 }
 
-export class RadiantRuntime<T = any> {
+export class RadiantRuntime<TCollections extends Record<string, any> = Record<string, any>> {
   private schema: RadiantAST;
   private adapter: RadiantAdapter;
-  public router: RadiantRouter;
+  public router: RadiantRouter<TCollections>;
   public storage: StorageProvider;
   public cache: CacheStore;
   private authEngine?: JWTAuthenticator;
 
-  private _hooks = new Map<string, Hooks>();
-  private _access = new Map<string, AccessRules>();
+  private _hooks = new Map<string, Hooks<any, any>>();
+  private _access = new Map<string, AccessRules<any, any>>();
 
   constructor(schema: RadiantAST, config: RadiantConfig) {
     this.schema = this.resolveEnvVariables(schema);
@@ -32,7 +32,7 @@ export class RadiantRuntime<T = any> {
     const prefix = this.schema.core?.api?.prefix || '/api';
     this.storage = config.storage || new LocalStorageProvider('uploads', prefix);
     this.cache = config.cache || new MemoryCacheStore();
-    this.router = new RadiantRouter(prefix);
+    this.router = new RadiantRouter();
 
     if (this.schema.security?.auth?.strategies?.includes("jwt")) {
       const secret = process.env.JWT_SECRET;
@@ -48,11 +48,15 @@ export class RadiantRuntime<T = any> {
     }
   }
 
-  access(collection: string, rules: AccessRules) {
+  access<K extends keyof TCollections>(collection: K, rules: AccessRules<TCollections[K], TCollections>) {
+    // @ts-ignore
+
     this._access.set(collection, rules);
   }
 
-  hooks(collection: string, hooks: Hooks) {
+  hooks<K extends keyof TCollections>(collection: K, hooks: Hooks<TCollections[K], TCollections>) {
+    // @ts-ignore
+
     this._hooks.set(collection, hooks);
   }
 
@@ -98,7 +102,7 @@ export class RadiantRuntime<T = any> {
       user = await this.authEngine.verifyAccessToken(token);
     }
 
-    return { request: req, user };
+    return { request: req, user, radiant: this };
   }
 
   private async checkAccess(collection: string, action: keyof AccessRules, ctx: RadiantRequestContext): Promise<void> {
@@ -135,7 +139,7 @@ export class RadiantRuntime<T = any> {
     const prefix = this.schema.core?.api?.prefix || '/api';
 
     // 1. Mount OpenAPI / Scalar Documentation
-    this.router.get('/docs/openapi.json', (req) => {
+    this.router.get(`${prefix}/docs/openapi.json`, async (ctx) => { const req = ctx.request;
       // Get the protocol/host from request
       const url = new URL(req.url);
       const proto = req.headers.get("x-forwarded-proto") ?? url.protocol.replace(/:$/, "");
@@ -148,7 +152,7 @@ export class RadiantRuntime<T = any> {
       });
     });
 
-    this.router.get('/docs', () => {
+    this.router.get(`${prefix}/docs`, () => {
       const specUrl = `${prefix}/docs/openapi.json`;
       const html = generateScalarHTML(specUrl);
       return new Response(html, {
@@ -159,12 +163,12 @@ export class RadiantRuntime<T = any> {
     // Mount WS and SSE routes
     const isRealtimeGlobal = this.schema.collections.some(c => c.realtime);
     if (isRealtimeGlobal) {
-      this.router.get('/ws', RadiantWebsocket.route({ path: `${prefix}/ws` }));
-      this.router.get('/sse', RadiantSSE.route({ path: `${prefix}/sse` }));
+      this.router.get(`/ws`, async (ctx) => RadiantWebsocket.route({ path: `${prefix}/ws` })(ctx.request as any, undefined));
+      this.router.get(`/sse`, async (ctx) => RadiantSSE.route({ path: `${prefix}/sse` })(ctx.request as any));
     }
 
     // Mount Global Upload Route
-    this.router.post('/upload', async (req) => {
+    this.router.post(`${prefix}/upload`, async (ctx) => { const req = ctx.request;
       const formData = await req.formData().catch(() => null);
       if (!formData) return new Response(JSON.stringify({ error: "Failed to parse form data" }), { status: 400 });
       
@@ -176,21 +180,21 @@ export class RadiantRuntime<T = any> {
     });
 
     // Mount Static Uploads Serve
-    this.router.get(`/uploads/:filename`, (req, params) => {
+    this.router.get(`${prefix}/uploads/:filename`, async (ctx) => { const req = ctx.request; const params = ctx.params as any;
       const filePath = `${process.cwd()}/uploads/${params.filename}`;
       const file = Bun.file(filePath);
       return new Response(file);
     });
 
     for (const collection of this.schema.collections) {
-      const basePath = `/${collection.slug}`;
+      const basePath = `${prefix}/${collection.slug}`;
       const hasCache = !!collection.cache;
       const cacheTTL = collection.cache?.ttl || 3600;
       const isRealtime = !!collection.realtime;
 
       if (collection.auth) {
         // REGISTER
-        this.router.post(`${basePath}/register`, async (req) => {
+        this.router.post(`${basePath}/register`, async (ctx) => { const req = ctx.request;
           let data = await req.json();
           if (!data.email || !data.password) return new Response(JSON.stringify({ error: "Email and password required" }), { status: 400 });
           
@@ -214,7 +218,7 @@ export class RadiantRuntime<T = any> {
         });
 
         // LOGIN
-        this.router.post(`${basePath}/login`, async (req) => {
+        this.router.post(`${basePath}/login`, async (ctx) => { const req = ctx.request;
           let data = await req.json();
           if (!data.email || !data.password) return new Response(JSON.stringify({ error: "Email and password required" }), { status: 400 });
           
@@ -239,7 +243,7 @@ export class RadiantRuntime<T = any> {
         });
 
         // REFRESH
-        this.router.post(`${basePath}/refresh`, async (req) => {
+        this.router.post(`${basePath}/refresh`, async (ctx) => { const req = ctx.request;
           let data = await req.json();
           if (!data.refreshToken) return new Response(JSON.stringify({ error: "refreshToken required" }), { status: 400 });
           if (!this.authEngine) return new Response(JSON.stringify({ error: "JWT auth not configured" }), { status: 501 });
@@ -255,7 +259,7 @@ export class RadiantRuntime<T = any> {
         });
 
         // LOGOUT
-        this.router.post(`${basePath}/logout`, async (req) => {
+        this.router.post(`${basePath}/logout`, async (ctx) => { const req = ctx.request;
           let data = await req.json();
           if (data.refreshToken && this.authEngine) {
             await this.authEngine.revokeRefreshToken(data.refreshToken);
@@ -264,19 +268,18 @@ export class RadiantRuntime<T = any> {
         });
 
         // FORGOT PASSWORD
-        this.router.post(`${basePath}/forgot-password`, async (req) => {
+        this.router.post(`${basePath}/forgot-password`, async (ctx) => { const req = ctx.request;
           return new Response(JSON.stringify({ message: "Password reset email sent (if account exists)" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         });
 
         // RESET PASSWORD
-        this.router.post(`${basePath}/reset-password`, async (req) => {
+        this.router.post(`${basePath}/reset-password`, async (ctx) => { const req = ctx.request;
           return new Response(JSON.stringify({ message: "Password reset successfully" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         });
       }
 
       // GET LIST
-      this.router.get(basePath, async (req) => {
-        const ctx = await this.getContext(req);
+      this.router.get(basePath, async (ctx) => { const req = ctx.request;
         await this.checkAccess(collection.slug, "read", ctx);
 
         if (hasCache) {
@@ -296,8 +299,7 @@ export class RadiantRuntime<T = any> {
       });
 
       // GET ONE
-      this.router.get(`${basePath}/:id`, async (req, params) => {
-        const ctx = await this.getContext(req);
+      this.router.get(`${basePath}/:id`, async (ctx) => { const req = ctx.request; const params = ctx.params as any;
         await this.checkAccess(collection.slug, "read", ctx);
 
         if (hasCache) {
@@ -333,8 +335,7 @@ export class RadiantRuntime<T = any> {
       };
 
       // POST CREATE
-      this.router.post(basePath, async (req) => {
-        const ctx = await this.getContext(req);
+      this.router.post(basePath, async (ctx) => { const req = ctx.request;
         await this.checkAccess(collection.slug, "create", ctx);
         let data = await req.json();
         data = await this.runBeforeHooks(collection.slug, "Create", ctx, data);
@@ -348,8 +349,7 @@ export class RadiantRuntime<T = any> {
       });
 
       // PATCH UPDATE
-      this.router.patch(`${basePath}/:id`, async (req, params) => {
-        const ctx = await this.getContext(req);
+      this.router.patch(`${basePath}/:id`, async (ctx) => { const req = ctx.request; const params = ctx.params as any;
         await this.checkAccess(collection.slug, "update", ctx);
         let data = await req.json();
         data = await this.runBeforeHooks(collection.slug, "Update", ctx, data);
@@ -366,8 +366,7 @@ export class RadiantRuntime<T = any> {
       });
 
       // DELETE
-      this.router.delete(`${basePath}/:id`, async (req, params) => {
-        const ctx = await this.getContext(req);
+      this.router.delete(`${basePath}/:id`, async (ctx) => { const req = ctx.request; const params = ctx.params as any;
         await this.checkAccess(collection.slug, "delete", ctx);
         await this.runBeforeHooks(collection.slug, "Delete", ctx, { id: params.id });
         await this.adapter.delete(collection.slug, params.id);
@@ -382,6 +381,32 @@ export class RadiantRuntime<T = any> {
         return new Response(JSON.stringify({ deleted: true }), { headers: { 'Content-Type': 'application/json' } });
       });
     }
+  }
+
+  
+  // --- DATABASE LOCAL API ---
+  public async find<K extends keyof Omit<TCollections, "__populated">, D extends number = 0>(collection: K, query?: Omit<import("../core/adapter").QueryArgs<TCollections[K]>, "depth"> & { depth?: D }): Promise<import("../core/adapter").PaginatedResult<D extends 0 ? TCollections[K] : "__populated" extends keyof TCollections ? (K extends keyof TCollections["__populated"] ? TCollections["__populated"][K] : TCollections[K]) : TCollections[K]>> {
+    return this.adapter.find(collection as string, query as any) as any;
+  }
+
+  public async findById<K extends keyof Omit<TCollections, "__populated">, D extends number = 0>(collection: K, id: string, query?: Omit<import("../core/adapter").QueryArgs<TCollections[K]>, "depth"> & { depth?: D }): Promise<(D extends 0 ? TCollections[K] : "__populated" extends keyof TCollections ? (K extends keyof TCollections["__populated"] ? TCollections["__populated"][K] : TCollections[K]) : TCollections[K]) | null> {
+    return this.adapter.findById(collection as string, id) as any;
+  }
+
+  public async create<K extends keyof TCollections>(collection: K, data: Partial<TCollections[K]>): Promise<TCollections[K]> {
+    return this.adapter.create(collection as string, data as any) as Promise<TCollections[K]>;
+  }
+
+  public async update<K extends keyof TCollections>(collection: K, id: string, data: Partial<TCollections[K]>): Promise<TCollections[K]> {
+    return this.adapter.update(collection as string, id, data as any) as Promise<TCollections[K]>;
+  }
+
+  public async delete<K extends keyof TCollections>(collection: K, id: string): Promise<void> {
+    return this.adapter.delete(collection as string, id);
+  }
+
+  public async count<K extends keyof TCollections>(collection: K, query?: Pick<import("../core/adapter").QueryArgs<TCollections[K]>, "where">): Promise<number> {
+    return this.adapter.count(collection as string, query as any);
   }
 
   async syncDatabaseSchema() {
@@ -470,7 +495,7 @@ export class RadiantRuntime<T = any> {
 
     const server = Bun.serve({
       port: options.port || 3000,
-      fetch: (req, server) => this.router.fetch(req, server),
+      fetch: async (req) => { const ctx = await this.getContext(req); const res = await this.router.handle(req, undefined, ctx.user, this); return res || new Response("Not found", { status: 404 }); },
       websocket: RadiantWebsocket.handlers(),
     });
 

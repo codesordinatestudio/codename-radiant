@@ -1,19 +1,23 @@
+import type { RadiantRuntime } from "../src/runtime";
+
 export interface AuthUser {
   id: string;
   role: string;
   [key: string]: any;
 }
 
-export interface RadiantRequestContext {
+export interface RadiantRequestContext<TCollections extends Record<string, any> = any, TState = unknown> {
   request: Request;
   user: AuthUser | null;
+  radiant: RadiantRuntime<TCollections>;
+  state?: TState;
 }
 
-export type AccessControlFunction = (ctx: RadiantRequestContext) => boolean | Promise<boolean>;
+export type AccessControlFunction<TDoc = any, TCollections extends Record<string, any> = any> = (ctx: RadiantRequestContext<TCollections>) => boolean | Promise<boolean>;
 
-export interface AccessRules {
-  read?: AccessControlFunction;
-  create?: AccessControlFunction;
-  update?: AccessControlFunction;
-  delete?: AccessControlFunction;
+export interface AccessRules<TDoc = any, TCollections extends Record<string, any> = any> {
+  read?: AccessControlFunction<TDoc, TCollections>;
+  create?: AccessControlFunction<TDoc, TCollections>;
+  update?: AccessControlFunction<TDoc, TCollections>;
+  delete?: AccessControlFunction<TDoc, TCollections>;
 }

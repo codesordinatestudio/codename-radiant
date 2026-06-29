@@ -29,7 +29,7 @@ export interface RadiantAdapter {
   dropColumnDDL?(table: string, column: string): string;
   dropTableDDL?(table: string): string;
   supportsGeneratedConstraintSQL?: boolean;
-  find(collection: string, query: QueryArgs): Promise<PaginatedResult>;
+  find(collection: string, query: QueryArgs<any>): Promise<PaginatedResult>;
   findById(collection: string, id: string): Promise<Record<string, unknown> | null>;
   findByIds?(collection: string, ids: string[]): Promise<Record<string, unknown>[]>;
   create(collection: string, data: Record<string, unknown>): Promise<Record<string, unknown>>;
@@ -37,18 +37,39 @@ export interface RadiantAdapter {
   update(collection: string, id: string, data: Record<string, unknown>): Promise<Record<string, unknown>>;
   delete(collection: string, id: string): Promise<void>;
   deleteMany?(collection: string, ids: string[]): Promise<void>;
-  count(collection: string, query?: Pick<QueryArgs, "where">): Promise<number>;
+  count(collection: string, query?: Pick<QueryArgs<any>, "where">): Promise<number>;
   raw?(sql: string, params?: unknown[]): Promise<unknown>;
 }
-export interface QueryArgs {
-  where?: Record<string, any>;
+export type FilterOperators<T> = {
+  eq?: T;
+  neq?: T;
+  gt?: T;
+  gte?: T;
+  lt?: T;
+  lte?: T;
+  in?: T[];
+  nin?: T[];
+  like?: string;
+  nlike?: string;
+};
+
+export type WhereClause<T> = {
+  [P in keyof T]?: T[P] | FilterOperators<T[P]>;
+} & {
+  OR?: WhereClause<T>[];
+  AND?: WhereClause<T>[];
+};
+
+export interface QueryArgs<T = any> {
+  where?: WhereClause<T>;
   sort?: string;
   limit?: number;
   page?: number;
+  depth?: number;
 }
 
-export interface PaginatedResult {
-  docs: Record<string, unknown>[];
+export interface PaginatedResult<T = Record<string, unknown>> {
+  docs: T[];
   totalDocs: number;
   limit: number;
   page: number;

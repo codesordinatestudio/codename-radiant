@@ -5,25 +5,30 @@ export function generateTypeScriptTypes(schema: any): string {
 `;
 
   const models: string[] = [];
+  const modelsPopulated: string[] = [];
   const creates: string[] = [];
   const wheres: string[] = [];
   const registry: string[] = [];
+  const registryPopulated: string[] = [];
 
   for (const col of schema.collections || []) {
     const className = col.slug.charAt(0).toUpperCase() + col.slug.slice(1);
     
     // 1. Core Model
     let modelFields = `  id: string;\n`;
+    let modelPopulatedFields = `  id: string;\n`;
     let createFields = ``;
     let whereFields = ``;
 
     for (const field of col.fields || []) {
-      const tsType = mapToTsType(field);
+      const tsType = mapToTsType(field, false);
+      const tsTypePopulated = mapToTsType(field, true);
       const isOptionalInModel = field.optional ? '?' : '';
       
       // Omit password from public model
       if (field.type !== 'password') {
         modelFields += `  ${field.name}${isOptionalInModel}: ${tsType};\n`;
+        modelPopulatedFields += `  ${field.name}${isOptionalInModel}: ${tsTypePopulated};\n`;
       }
 
       // Create input (password is kept here, optionally if it has a default)
@@ -44,17 +49,20 @@ export function generateTypeScriptTypes(schema: any): string {
     whereFields += `  or?: ${className}WhereClause[];\n`;
 
     models.push(`export interface ${className} {\n${modelFields}}\n`);
+    modelsPopulated.push(`export interface ${className}Populated {\n${modelPopulatedFields}}\n`);
     creates.push(`export interface ${className}Create {\n${createFields}}\n`);
     creates.push(`export type ${className}Update = Partial<${className}Create>;\n`);
     wheres.push(`export interface ${className}WhereClause {\n${whereFields}}\n`);
     
     registry.push(`  ${col.slug}: ${className};`);
+    registryPopulated.push(`  ${col.slug}: ${className}Populated;`);
   }
 
   output += `// 1. The Core Models\n${models.join('\n')}\n`;
+  output += `// 1b. The Populated Models\n${modelsPopulated.join('\n')}\n`;
   output += `// 2. The Create / Update Inputs\n${creates.join('\n')}\n`;
   output += `// 3. Query Builder Types\n${wheres.join('\n')}\n`;
-  output += `// 4. Global Framework Registry\nexport type Collections = {\n${registry.join('\n')}\n};\n`;
+  output += `// 4. Global Framework Registry\nexport type Collections = {\n${registry.join('\n')}\n  __populated: {\n${registryPopulated.join('\n')}\n  }\n};\n`;
 
   return output;
 }
@@ -85,13 +93,19 @@ import type { Collections } from '../radiant-types';
   return output;
 }
 
-function mapToTsType(field: any): string {
+function mapToTsType(field: any, isPopulated: boolean = false): string {
   let baseType = 'any';
   
   if (field.type === 'object' && field.fields) {
-    const props = field.fields.map((f: any) => `${f.name}: ${mapToTsType(f)};`).join(' ');
+    const props = field.fields.map((f: any) => `${f.name}: ${mapToTsType(f, isPopulated)};`).join(' ');
     baseType = `{ ${props} }`;
-  } else if (field.type === 'text' || field.type === 'string' || field.type === 'textarea' || field.type === 'email' || field.type === 'password' || field.type === 'relationship' || field.type === 'link' || field.type === 'date') {
+  } else if (field.type === 'relationship' || field.type === 'link') {
+    if (isPopulated && field.target && typeof field.target === 'string') {
+      baseType = field.target.charAt(0).toUpperCase() + field.target.slice(1);
+    } else {
+      baseType = 'string';
+    }
+  } else if (field.type === 'text' || field.type === 'string' || field.type === 'textarea' || field.type === 'email' || field.type === 'password' || field.type === 'date') {
     baseType = 'string';
   } else if (field.type === 'select' || field.type === 'enum') {
     const opts = field.options || field.values;

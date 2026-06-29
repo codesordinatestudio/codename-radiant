@@ -83,7 +83,7 @@ export async function scaffoldTsProject(rootDir: string) {
 
     if (usePostgres) {
       imports += `import { postgres } from "@codesordinatestudio/radiant-plugin-postgres";\n`;
-      adapterConfig = `  adapter: postgres({ url: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/radiant" })`;
+      adapterConfig = `  adapter: postgres({ url: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/radiant_app" })`;
     } else {
       imports += `import { MemoryAdapter } from "@codesordinatestudio/radiant-bun";\n`;
       adapterConfig = `  adapter: new MemoryAdapter()`;
