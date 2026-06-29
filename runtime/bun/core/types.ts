@@ -11,6 +11,9 @@ export interface RadiantAST {
     enabled?: boolean;
     user?: string;
   };
+  migrate?: {
+    dropOrphan?: boolean;
+  };
   security?: {
     auth?: {
       strategies?: string[];

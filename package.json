@@ -12,13 +12,14 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "link:local": "bun run scripts/link-all.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^26.0.1",
     "jose": "^6.2.3",
-    "turbo": "^2.0.0",
+    "turbo": "^2.10.0",
     "typescript": "^7.0.1-rc"
   }
 }

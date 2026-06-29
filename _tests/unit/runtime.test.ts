@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { RadiantRuntime } from '../../runtime/bun/src/runtime';
 import { RadiantAdapter } from '../../runtime/bun/core/types';
 
@@ -159,6 +159,116 @@ describe('RadiantRuntime', () => {
 
     // Two distinct contexts should be generated per-request
     expect(contextsCreated).toBe(2);
+  });
+
+  describe('Auto-Sync Database Schema', () => {
+    let mockSyncAdapter: any;
+
+    beforeEach(() => {
+      mockSyncAdapter = {
+        connect: async () => {},
+        disconnect: async () => {},
+        adapterType: 'mock',
+        find: async () => ({ docs: [], totalDocs: 0, limit: 10, page: 1, totalPages: 0, hasNextPage: false, hasPrevPage: false }),
+        findById: async () => null,
+        create: async () => ({}),
+        update: async () => ({}),
+        delete: async () => {},
+        count: async () => 0,
+        // Sync mocks
+        getSystemTableStatements: () => ['CREATE TABLE sys;'],
+        getCurrentSchema: async () => ({
+          tables: ['users'],
+          columns: { users: ['id UUID', 'email TEXT'] }
+        }),
+        createTableDDL: (col: any) => `CREATE TABLE ${col.slug};`,
+        addColumnDDL: (table: string, col: any) => `ALTER TABLE ${table} ADD COLUMN ${col.name};`,
+        dropTableDDL: (table: string) => `DROP TABLE ${table};`,
+        dropColumnDDL: (table: string, col: string) => `ALTER TABLE ${table} DROP COLUMN ${col};`,
+        raw: async () => {}
+      };
+    });
+
+    test('executes system table statements and schema sync correctly', async () => {
+      const schema: any = {
+        core: { api: { prefix: "/api" } },
+        collections: [
+          { slug: 'users', fields: [{ name: 'email', type: 'text' }, { name: 'age', type: 'number' }] },
+          { slug: 'posts', fields: [{ name: 'title', type: 'text' }] }
+        ]
+      };
+
+      const rawSpy = spyOn(mockSyncAdapter, 'raw');
+      const runtime = new RadiantRuntime(schema, { adapter: mockSyncAdapter });
+      
+      await runtime.syncDatabaseSchema();
+
+      // Should execute system table statement
+      expect(rawSpy).toHaveBeenCalledWith('CREATE TABLE sys;');
+      
+      // Should create missing table (posts)
+      expect(rawSpy).toHaveBeenCalledWith('CREATE TABLE posts;');
+      
+      // Should add missing column (age) to existing table (users)
+      expect(rawSpy).toHaveBeenCalledWith('ALTER TABLE users ADD COLUMN age;');
+    });
+
+    test('drops orphaned tables and columns when dropOrphan is true', async () => {
+      // Simulate existing schema having an orphaned table ('old_table') 
+      // and an orphaned column ('users.old_col')
+      mockSyncAdapter.getCurrentSchema = async () => ({
+        tables: ['users', 'old_table'],
+        columns: { users: ['id UUID', 'email TEXT', 'old_col TEXT'] }
+      });
+
+      const schema: any = {
+        core: { api: { prefix: "/api" } },
+        migrate: { dropOrphan: true },
+        collections: [
+          { slug: 'users', fields: [{ name: 'email', type: 'text' }] }
+        ]
+      };
+
+      const rawSpy = spyOn(mockSyncAdapter, 'raw');
+      const runtime = new RadiantRuntime(schema, { adapter: mockSyncAdapter });
+      
+      await runtime.syncDatabaseSchema();
+
+      // Should drop orphaned table
+      expect(rawSpy).toHaveBeenCalledWith('DROP TABLE old_table;');
+      
+      // Should drop orphaned column
+      expect(rawSpy).toHaveBeenCalledWith('ALTER TABLE users DROP COLUMN old_col;');
+    });
+
+    test('warns but does not drop orphans when dropOrphan is false', async () => {
+      mockSyncAdapter.getCurrentSchema = async () => ({
+        tables: ['users', 'old_table'],
+        columns: { users: ['id UUID', 'email TEXT', 'old_col TEXT'] }
+      });
+
+      const schema: any = {
+        core: { api: { prefix: "/api" } },
+        migrate: { dropOrphan: false }, // explicitly false
+        collections: [
+          { slug: 'users', fields: [{ name: 'email', type: 'text' }] }
+        ]
+      };
+
+      const rawSpy = spyOn(mockSyncAdapter, 'raw');
+      const warnSpy = spyOn(console, 'warn');
+      const runtime = new RadiantRuntime(schema, { adapter: mockSyncAdapter });
+      
+      await runtime.syncDatabaseSchema();
+
+      // Should NOT drop anything
+      expect(rawSpy).not.toHaveBeenCalledWith('DROP TABLE old_table;');
+      expect(rawSpy).not.toHaveBeenCalledWith('ALTER TABLE users DROP COLUMN old_col;');
+
+      // Should log warnings
+      expect(warnSpy).toHaveBeenCalledWith('[Radiant Auto-Sync] Orphaned table detected but not dropped: old_table');
+      expect(warnSpy).toHaveBeenCalledWith('[Radiant Auto-Sync] Orphaned column detected but not dropped: users.old_col');
+    });
   });
 
   describe('Dynamic API Routing', () => {

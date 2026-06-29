@@ -16,6 +16,8 @@ import {
   generateCreateTable,
   generateAddColumn,
   generateRenameColumn,
+  buildTable,
+  buildColumns,
 } from "./ddl/schema";
 import type { TableDefinition, ColumnDefinition } from "./ddl/schema";
 
@@ -294,16 +296,24 @@ export class PostgresAdapter implements LucentAdapter {
     return result[0]?.version || null;
   }
 
-  createTableDDL(table: unknown): string {
-    return generateCreateTable(table as TableDefinition);
+  createTableDDL(collection: unknown): string {
+    const tableDef = buildTable(collection as Collection);
+    return generateCreateTable(tableDef);
   }
 
   renameColumnDDL(table: string, oldName: string, newName: string): string {
     return generateRenameColumn(table, oldName, newName);
   }
 
-  addColumnDDL(table: string, column: unknown): string | null {
-    return generateAddColumn(table, column as ColumnDefinition);
+  addColumnDDL(table: string, field: unknown): string | null {
+    // Note: To properly map the field we would ideally need the whole collection,
+    // but we can wrap it in a mock collection just to use buildColumns on this single field
+    const mockCollection = { slug: table, fields: [field as any], timestamps: false };
+    const cols = buildColumns(mockCollection as any);
+    // buildColumns always adds 'id', so the generated field is at index 1
+    const columnDef = cols.find(c => c.name === (field as any).name);
+    if (!columnDef) return null;
+    return generateAddColumn(table, columnDef);
   }
 
   dropColumnDDL(table: string, column: string): string {

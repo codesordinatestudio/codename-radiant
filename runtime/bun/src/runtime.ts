@@ -58,6 +58,13 @@ export class RadiantRuntime<T = any> {
         if (typeof obj.$default === "number" && typeof finalValue === "string") {
           const parsed = Number(finalValue);
           if (!isNaN(parsed)) finalValue = parsed;
+        } else if (typeof obj.$default === "boolean" && typeof finalValue === "string") {
+          if (finalValue.toLowerCase() === "true") finalValue = true;
+          else if (finalValue.toLowerCase() === "false") finalValue = false;
+        } else if (typeof finalValue === "string") {
+          // If no default was provided to infer type from, fallback to direct boolean cast for strings like "true" / "false"
+          if (finalValue.toLowerCase() === "true") finalValue = true;
+          else if (finalValue.toLowerCase() === "false") finalValue = false;
         }
         return finalValue;
       }
@@ -278,7 +285,88 @@ export class RadiantRuntime<T = any> {
     }
   }
 
+  async syncDatabaseSchema() {
+    if (!this.adapter) return;
+
+    // 1. Init System Tables
+    if (this.adapter.getSystemTableStatements && this.adapter.raw) {
+      const stmts = this.adapter.getSystemTableStatements();
+      for (const stmt of stmts) {
+        await this.adapter.raw(stmt);
+      }
+    }
+
+    // 2. Diff and Sync Collection Tables
+    if (!this.adapter.getCurrentSchema || !this.adapter.createTableDDL || !this.adapter.addColumnDDL || !this.adapter.raw) {
+      return; // Adapter does not support schema auto-sync
+    }
+
+    const currentSchema = await this.adapter.getCurrentSchema();
+    const existingTables = new Set(currentSchema.tables);
+    const configuredTables = new Set(this.schema.collections.map(c => c.slug));
+    const dropOrphan = this.schema.migrate?.dropOrphan === true;
+
+    // Detect orphaned tables
+    for (const existingTable of existingTables) {
+      if (existingTable !== 'radiant_migrations' && !configuredTables.has(existingTable)) {
+        if (dropOrphan) {
+          if (this.adapter.dropTableDDL) {
+            console.log(`[Radiant Auto-Sync] Dropping orphaned table: ${existingTable}`);
+            await this.adapter.raw(this.adapter.dropTableDDL(existingTable));
+          }
+        } else {
+          console.warn(`[Radiant Auto-Sync] Orphaned table detected but not dropped: ${existingTable}`);
+        }
+      }
+    }
+
+    for (const collection of this.schema.collections) {
+      const tableName = collection.slug;
+
+      if (!existingTables.has(tableName)) {
+        // Table doesn't exist, create it
+        const ddl = this.adapter.createTableDDL(collection);
+        console.log(`[Radiant Auto-Sync] Creating table: ${tableName}`);
+        await this.adapter.raw(ddl);
+      } else {
+        // Table exists, check for missing columns
+        const existingColumnsArray = currentSchema.columns[tableName] || [];
+        const existingColumnNames = new Set(existingColumnsArray.map(c => c.split(' ')[0].replace(/"/g, '')));
+        const configuredFields = new Set(collection.fields.map(f => f.name));
+
+        // Detect missing columns (in AST, not in DB)
+        for (const field of collection.fields) {
+          if (!existingColumnNames.has(field.name)) {
+            const ddl = this.adapter.addColumnDDL(tableName, field);
+            if (ddl) {
+              console.log(`[Radiant Auto-Sync] Adding column: ${tableName}.${field.name}`);
+              await this.adapter.raw(ddl);
+            }
+          }
+        }
+
+        // Detect orphaned columns (in DB, not in AST)
+        for (const colName of existingColumnNames) {
+          // Skip system fields
+          if (colName === 'id' || colName === 'createdAt' || colName === 'updatedAt') continue;
+
+          if (!configuredFields.has(colName)) {
+            if (dropOrphan) {
+              if (this.adapter.dropColumnDDL) {
+                console.log(`[Radiant Auto-Sync] Dropping orphaned column: ${tableName}.${colName}`);
+                await this.adapter.raw(this.adapter.dropColumnDDL(tableName, colName));
+              }
+            } else {
+              console.warn(`[Radiant Auto-Sync] Orphaned column detected but not dropped: ${tableName}.${colName}`);
+            }
+          }
+        }
+      }
+    }
+  }
+
   async start(options: { port?: number } = {}) {
+    await this.syncDatabaseSchema();
     await this.buildRoutes();
 
     const server = Bun.serve({
