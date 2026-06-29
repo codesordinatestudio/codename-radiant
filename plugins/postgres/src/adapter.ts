@@ -9,8 +9,7 @@ import type {
   PaginatedResult as QueryResult,
   CollectionConfig as Collection,
   ParsedConstraintError,
-} from "@codesordinatestudio/radiant-bun";
-import { logger, generateId } from "@codesordinatestudio/radiant-bun";
+} from "@codesordinatestudio/radiant-bun/core";
 import {
   generateSystemTables,
   generateCreateTable,
@@ -103,17 +102,12 @@ export class PostgresAdapter implements LucentAdapter {
         if (f.type === "json" || f.type === "richtext" || f.type === "array" || f.type === "upload") {
           jsons.add(f.name);
         }
-        if (f.type === "relationship" && f.relationTo) {
-          this._relationshipTargets.set(`${col.slug}.${f.name}`, f.relationTo);
-        }
-        if (f.searchable) {
-          searchable.add(f.name);
+        if (f.type === "relationship" && f.target) {
+          this._relationshipTargets.set(`${col.slug}.${f.name}`, f.target);
         }
       }
-      if (col.timestamps) {
-        known.add("createdAt");
-        known.add("updatedAt");
-      }
+      known.add("createdAt");
+      known.add("updatedAt");
       if (nums.size > 0) {
         this._numericFields.set(col.slug, nums);
       }
@@ -201,7 +195,7 @@ export class PostgresAdapter implements LucentAdapter {
    * Reconnect the pool. Called automatically when a query hits a closed connection.
    */
   private async reconnect(): Promise<void> {
-    logger.warn("Database connection lost — reconnecting…");
+    console.warn("Database connection lost — reconnecting…");
     try {
       if (this.db) await this.closeDb(this.db);
     } catch {
@@ -209,7 +203,7 @@ export class PostgresAdapter implements LucentAdapter {
     }
     this.initDb();
     await this.db.unsafe("SELECT 1");
-    logger.info("Database reconnected");
+    console.info("Database reconnected");
   }
 
   /**
@@ -397,7 +391,7 @@ export class PostgresAdapter implements LucentAdapter {
   }
 
   private async _find(collection: string, query: QueryArgs): Promise<QueryResult> {
-    const { where, sort, limit = 10, page = 1, cursor } = query;
+    const { where, sort, limit = 10, page = 1 } = query;
 
     // Build WHERE clause
     let whereClause = "";
@@ -424,86 +418,6 @@ export class PostgresAdapter implements LucentAdapter {
       if (orderParts.length > 0) orderClause = `ORDER BY ${orderParts.join(", ")}`;
     }
 
-    // ---- cursor-based pagination ----
-    if (cursor) {
-      let decoded: { id: string; sortValue?: unknown };
-      try {
-        decoded = JSON.parse(Buffer.from(cursor, "base64url").toString("utf-8"));
-      } catch {
-        throw new Error("Invalid cursor");
-      }
-
-      // Determine the primary sort field and direction
-      const primarySort = sort ? sort.split(",")[0].trim() : "id";
-      const desc = primarySort.startsWith("-");
-      const sortField = desc ? primarySort.slice(1) : primarySort;
-      const op = desc ? "<" : ">";
-
-      const pIdx = params.length + 1;
-      const cursorCondition =
-        sortField === "id"
-          ? `${pgIdentifier("id")} ${op} $${pIdx}`
-          : `(${pgIdentifier(sortField)}, ${pgIdentifier("id")}) ${op} ($${pIdx}, $${pIdx + 1})`;
-
-      if (sortField === "id") {
-        params.push(decoded.id);
-      } else {
-        params.push(decoded.sortValue, decoded.id);
-      }
-
-      whereClause = whereClause ? `${whereClause} AND ${cursorCondition}` : `WHERE ${cursorCondition}`;
-
-      // Count total docs (no cursor filter) for metadata
-      const countSql = `SELECT COUNT(*) AS cnt FROM ${pgIdentifier(collection)}${
-        where
-          ? " " +
-            (() => {
-              const cCtx = { params: [] as unknown[], paramIndex: params.length + 1 };
-              const cSql = this.buildPgWhere(where as Record<string, unknown>, cCtx, collection);
-              if (cSql) {
-                params.push(...cCtx.params);
-                return "WHERE " + cSql;
-              }
-              return "";
-            })()
-          : ""
-      }`;
-
-      const dataSql =
-        `SELECT * FROM ${pgIdentifier(collection)} ${whereClause}` +
-        `${orderClause ? " " + orderClause : ""}` +
-        ` LIMIT ${limit + 1}`;
-
-      logger.debug({ dataSql, params }, "Executing cursor find query");
-
-      const rows = await this.db!.unsafe(dataSql, params);
-      const hasNextPage = rows.length > limit;
-      const docs = (hasNextPage ? rows.slice(0, limit) : rows).map((row: Record<string, unknown>) =>
-        this.deserializeRow(row, collection),
-      );
-
-      // Build nextCursor from the last returned doc
-      let nextCursor: string | null = null;
-      if (hasNextPage && docs.length > 0) {
-        const lastDoc = docs[docs.length - 1];
-        nextCursor = Buffer.from(
-          JSON.stringify({ id: lastDoc.id, sortValue: sortField !== "id" ? lastDoc[sortField] : undefined }),
-        ).toString("base64url");
-      }
-
-      return {
-        docs,
-        totalDocs: 0, // Not cheaply available with cursor pagination
-        limit,
-        page: 0,
-        totalPages: 0,
-        hasNextPage,
-        hasPrevPage: true, // We have a cursor, so there must be prior data
-        nextCursor,
-        prevCursor: null,
-      };
-    }
-
     // ---- offset-based pagination (default) ----
     const offset = (page - 1) * limit;
 
@@ -515,7 +429,7 @@ export class PostgresAdapter implements LucentAdapter {
       `${orderClause ? " " + orderClause : ""}` +
       ` LIMIT ${limit} OFFSET ${offset}`;
 
-    logger.debug({ dataSql, params }, "Executing find query");
+    console.debug({ dataSql, params }, "Executing find query");
 
     const rows = (await this.db!.unsafe(dataSql, params)) as (Record<string, unknown> & { _total?: unknown })[];
 
@@ -555,7 +469,7 @@ export class PostgresAdapter implements LucentAdapter {
       }
 
       const countSql = `SELECT COUNT(*) AS cnt FROM ${pgIdentifier(collection)}${whereClause ? " " + whereClause : ""}`;
-      logger.debug({ countSql, params }, "Executing count query");
+      console.debug({ countSql, params }, "Executing count query");
 
       const rows = (await this.db!.unsafe(countSql, params)) as { cnt?: unknown }[];
       return Number(rows[0]?.cnt ?? 0);
@@ -565,7 +479,7 @@ export class PostgresAdapter implements LucentAdapter {
   async findById(collection: string, id: string): Promise<Record<string, unknown> | null> {
     if (!this.db) throw new Error("Database not connected");
     return this.withRetry(async () => {
-      logger.debug({ collection, id }, "Executing findById query");
+      console.debug({ collection, id }, "Executing findById query");
       const result = await this.db!`SELECT * FROM ${sql(collection)} WHERE id = ${id}`;
       if (result.length === 0) return null;
       return this.deserializeRow(result[0], collection);
@@ -576,7 +490,7 @@ export class PostgresAdapter implements LucentAdapter {
     if (!this.db) throw new Error("Database not connected");
     if (ids.length === 0) return [];
     return this.withRetry(async () => {
-      logger.debug({ collection, count: ids.length }, "Executing findByIds query");
+      console.debug({ collection, count: ids.length }, "Executing findByIds query");
       const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ");
       const result = await this.db!.unsafe(
         `SELECT * FROM ${pgIdentifier(collection)} WHERE id IN (${placeholders})`,
@@ -591,11 +505,11 @@ export class PostgresAdapter implements LucentAdapter {
     return this.withRetry(async () => {
       const now = new Date().toISOString();
       const knownFields = this._knownFields.get(collection);
-      const rawDoc: Record<string, unknown> = { ...data, id: (data.id as string | undefined) ?? generateId() };
+      const rawDoc: Record<string, unknown> = { ...data, id: (data.id as string | undefined) ?? crypto.randomUUID() };
       if (!knownFields || knownFields.has("createdAt")) rawDoc.createdAt = rawDoc.createdAt ?? now;
       if (!knownFields || knownFields.has("updatedAt")) rawDoc.updatedAt = now;
       const doc = this.serializeDocForPg(rawDoc, collection);
-      logger.debug({ collection, fields: Object.keys(doc) }, "Executing create query");
+      console.debug({ collection, fields: Object.keys(doc) }, "Executing create query");
       const result = await this.db!`INSERT INTO ${sql(collection)} ${sql(doc)} RETURNING *`;
       return this.deserializeRow(result[0], collection);
     });
@@ -608,12 +522,12 @@ export class PostgresAdapter implements LucentAdapter {
       const now = new Date().toISOString();
       const knownFields = this._knownFields.get(collection);
       const rows = docs.map((data) => {
-        const rawDoc: Record<string, unknown> = { ...data, id: (data.id as string | undefined) ?? generateId() };
+        const rawDoc: Record<string, unknown> = { ...data, id: (data.id as string | undefined) ?? crypto.randomUUID() };
         if (!knownFields || knownFields.has("createdAt")) rawDoc.createdAt = rawDoc.createdAt ?? now;
         if (!knownFields || knownFields.has("updatedAt")) rawDoc.updatedAt = now;
         return this.serializeDocForPg(rawDoc, collection);
       });
-      logger.debug({ collection, count: rows.length }, "Executing bulk create");
+      console.debug({ collection, count: rows.length }, "Executing bulk create");
       const result = await this.db!`INSERT INTO ${sql(collection)} ${sql(rows)} RETURNING *`;
       return result.map((row: Record<string, unknown>) => this.deserializeRow(row, collection));
     });
@@ -627,7 +541,7 @@ export class PostgresAdapter implements LucentAdapter {
       const rawUpdate = { ...data } as Record<string, unknown>;
       if (!knownFields || knownFields.has("updatedAt")) rawUpdate.updatedAt = now;
       const updateData = this.serializeDocForPg(rawUpdate, collection);
-      logger.debug({ collection, id, fields: Object.keys(updateData) }, "Executing update query");
+      console.debug({ collection, id, fields: Object.keys(updateData) }, "Executing update query");
       const result = await this.db!`UPDATE ${sql(collection)} SET ${sql(updateData)} WHERE id = ${id} RETURNING *`;
       if (result.length === 0) {
         throw new Error(`Document with id '${id}' not found in collection '${collection}'`);
@@ -639,7 +553,7 @@ export class PostgresAdapter implements LucentAdapter {
   async delete(collection: string, id: string): Promise<void> {
     if (!this.db) throw new Error("Database not connected");
     await this.withRetry(async () => {
-      logger.debug({ collection, id }, "Executing delete query");
+      console.debug({ collection, id }, "Executing delete query");
       const result = await this.db!`DELETE FROM ${sql(collection)} WHERE id = ${id}`;
       if (result.count === 0) {
         throw new Error(`Document with id '${id}' not found in collection '${collection}'`);
@@ -651,7 +565,7 @@ export class PostgresAdapter implements LucentAdapter {
     if (!this.db) throw new Error("Database not connected");
     if (ids.length === 0) return;
     await this.withRetry(async () => {
-      logger.debug({ collection, count: ids.length }, "Executing bulk delete");
+      console.debug({ collection, count: ids.length }, "Executing bulk delete");
       await this.db!`DELETE FROM ${sql(collection)} WHERE id IN ${sql(ids)}`;
     });
   }
@@ -940,13 +854,13 @@ export class PostgresAdapter implements LucentAdapter {
     // Build the extraction path: all but last use ->, last uses ->> (text extraction)
     let extraction: string;
     if (pathSegments.length === 1) {
-      extraction = `${pgIdentifier(column)}->>${pgLiteral(pathSegments[0])}`;
+      extraction = `${pgIdentifier(column)}->>${pgLiteral(pathSegments[0]!)}`;
     } else {
       const intermediate = pathSegments
         .slice(0, -1)
         .map((s) => pgLiteral(s))
         .join("->");
-      extraction = `${pgIdentifier(column)}->${intermediate}->>${pgLiteral(pathSegments[pathSegments.length - 1])}`;
+      extraction = `${pgIdentifier(column)}->${intermediate}->>${pgLiteral(pathSegments[pathSegments.length - 1]!)}`;
     }
 
     // For numeric operators, cast the extracted text to numeric
@@ -996,11 +910,11 @@ export class PostgresAdapter implements LucentAdapter {
         // Check if the JSON key exists
         if (pathSegments.length === 1) {
           return value === true || value === "true"
-            ? `${pgIdentifier(column)} ? ${pgLiteral(pathSegments[0])}`
-            : `NOT (${pgIdentifier(column)} ? ${pgLiteral(pathSegments[0])})`;
+            ? `${pgIdentifier(column)} ? ${pgLiteral(pathSegments[0]!)}`
+            : `NOT (${pgIdentifier(column)} ? ${pgLiteral(pathSegments[0]!)})`;
         }
         // For deep paths, check if the extraction is non-null
-        const baseExtraction = `${pgIdentifier(column)}->>${pgLiteral(pathSegments[0])}`;
+        const baseExtraction = `${pgIdentifier(column)}->>${pgLiteral(pathSegments[0]!)}`;
         return value === true || value === "true" ? `${baseExtraction} IS NOT NULL` : `${baseExtraction} IS NULL`;
       }
       case "between": {

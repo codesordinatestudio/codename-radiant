@@ -56,7 +56,7 @@ export class RadiantRouter {
         if (match) {
           try {
             // Add CORS headers to all responses
-            const res = await route.handler(req, match.pathname.groups, server);
+            const res = await route.handler(req, match.pathname.groups as Record<string, string>, server);
             if (!res) return res as any; // Allow undefined for WebSocket upgrades
             res.headers.set('Access-Control-Allow-Origin', '*');
             return res;

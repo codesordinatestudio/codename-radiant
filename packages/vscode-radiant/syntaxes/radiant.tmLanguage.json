@@ -62,7 +62,7 @@
       "patterns": [
         {
           "name": "support.type.radiant",
-          "match": "\\b(string|email|password|text|link)\\b"
+          "match": "\\b(array|boolean|date|email|integer|json|multiselect|number|password|relationship|richtext|select|text|textarea|upload)\\b"
         }
       ]
     }

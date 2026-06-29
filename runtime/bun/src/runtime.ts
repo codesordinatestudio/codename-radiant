@@ -42,8 +42,8 @@ export class RadiantRuntime<T = any> {
       const jwtSettings = this.schema.security.auth.jwt || {};
       this.authEngine = new JWTAuthenticator({
         secret,
-        expiresIn: jwtSettings.accessTokenExpiry || "15m",
-        refreshExpiresIn: jwtSettings.refreshTokenExpiry || "7d"
+        accessTokenExpiry: jwtSettings.accessTokenExpiry || "15m",
+        refreshTokenExpiry: jwtSettings.refreshTokenExpiry || "7d"
       }, this.adapter);
     }
   }
@@ -289,7 +289,7 @@ export class RadiantRuntime<T = any> {
         
         if (hasCache) {
           const cacheKey = `list:${collection.slug}:${new URL(req.url).search}`;
-          await this.cache.set(cacheKey, result, cacheTTL);
+          await this.cache.set(cacheKey, result, Number(cacheTTL));
         }
 
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
@@ -311,7 +311,7 @@ export class RadiantRuntime<T = any> {
 
         if (hasCache) {
           const cacheKey = `doc:${collection.slug}:${params.id}`;
-          await this.cache.set(cacheKey, result, cacheTTL);
+          await this.cache.set(cacheKey, result, Number(cacheTTL));
         }
 
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });

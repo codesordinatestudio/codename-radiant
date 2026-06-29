@@ -29,7 +29,7 @@ describe('E2E CLI Tests', () => {
       collection users {
         auth: true;
         fields: {
-          name: string;
+          name: text;
           email: email @unique;
         }
       }
@@ -41,8 +41,8 @@ describe('E2E CLI Tests', () => {
     const result = spawnSync(['bun', 'run', CLI_PATH, 'build', '-d', RADIANT_DIR]);
     expect(result.exitCode).toBe(0);
 
-    const schemaPath = join(TEST_DIR, 'schema.json');
-    const typesPath = join(TEST_DIR, 'radiant-types.ts');
+    const schemaPath = join(RADIANT_DIR, 'schema.json');
+    const typesPath = join(RADIANT_DIR, 'index.ts');
     
     expect(existsSync(schemaPath)).toBe(true);
     expect(existsSync(typesPath)).toBe(true);
@@ -76,7 +76,7 @@ describe('E2E CLI Tests', () => {
     const result = spawnSync(['bun', 'run', CLI_PATH, 'build', '-d', RADIANT_DIR]);
     expect(result.exitCode).toBe(0);
 
-    const schemaPath = join(TEST_DIR, 'schema.json');
+    const schemaPath = join(RADIANT_DIR, 'schema.json');
     expect(existsSync(schemaPath)).toBe(true);
 
     const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
@@ -107,7 +107,7 @@ describe('E2E CLI Tests', () => {
       collection users {
         invalidColProp: true;
         fields: {
-          name: string;
+          name: text;
         }
       }
     `;

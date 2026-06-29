@@ -1,6 +1,6 @@
-import type { CollectionConfig, FieldConfig } from "@codesordinatestudio/radiant-bun";
+import type { CollectionConfig, FieldConfig } from "@codesordinatestudio/radiant-bun/core";
 
-export type PostgresType = "TEXT" | "BOOLEAN" | "INTEGER" | "NUMERIC" | "TIMESTAMPTZ" | "JSONB" | "UUID";
+export type PostgresType = "TEXT" | "BOOLEAN" | "INTEGER" | "NUMERIC" | "TIMESTAMPTZ" | "JSONB" | "UUID" | "TEXT[]";
 
 export interface ColumnDefinition {
   name: string;
@@ -20,19 +20,27 @@ export interface TableDefinition {
 export function fieldTypeToPostgres(field: FieldConfig): PostgresType {
   switch (field.type) {
     case "text":
-    case "enum":
+    case "textarea":
+    case "email":
+    case "password":
+    case "select":
       return "TEXT";
+    case "multiselect":
+      return "TEXT[]";
     case "boolean":
       return "BOOLEAN";
-    case "int":
+    case "integer":
       return "INTEGER";
     case "number":
       return "NUMERIC";
     case "date":
       return "TIMESTAMPTZ";
+    case "array":
     case "json":
+    case "richtext":
+    case "upload":
       return "JSONB";
-    case "link":
+    case "relationship":
       return "UUID";
     default:
       return "TEXT";
@@ -60,7 +68,7 @@ export function buildColumns(collection: CollectionConfig): ColumnDefinition[] {
       defaultValue: field.default,
     };
 
-    if (field.type === "link" && field.target) {
+    if (field.type === "relationship" && field.target) {
       col.foreignKey = {
         table: field.target,
         column: "id",

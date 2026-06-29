@@ -1,0 +1,120 @@
+{
+  "collections": [
+    {
+      "slug": "users",
+      "fields": [
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "role",
+          "type": "enum",
+          "values": [
+            "admin",
+            "user"
+          ],
+          "default": "user"
+        }
+      ],
+      "auth": true
+    },
+    {
+      "slug": "todos",
+      "fields": [
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "completed",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "author",
+          "type": "relationship",
+          "target": "users"
+        }
+      ]
+    }
+  ],
+  "core": {
+    "api": {
+      "prefix": "/api",
+      "maxBodyBytes": 1048576,
+      "trustedProxies": [
+        "127.0.0.1"
+      ]
+    }
+  },
+  "adminUI": {
+    "enabled": true,
+    "user": "users"
+  },
+  "security": {
+    "auth": {
+      "strategies": [
+        "jwt",
+        "session"
+      ],
+      "jwt": {
+        "accessTokenExpiry": {
+          "$env": "JWT_EXPIRY",
+          "$default": "15m"
+        },
+        "refreshTokenExpiry": "7d",
+        "cookies": {
+          "enabled": true
+        }
+      },
+      "passwordPolicy": {
+        "minLength": 8,
+        "requireUppercase": true,
+        "requireNumber": true
+      },
+      "lockout": {
+        "maxAttempts": {
+          "$env": "LOGIN_ATTEMPTS",
+          "$default": 5
+        },
+        "durationMinutes": 15
+      }
+    },
+    "cors": {
+      "origin": [
+        "http://localhost:3000"
+      ],
+      "credentials": true
+    },
+    "rateLimit": {
+      "write": {
+        "max": 100,
+        "window": "15m"
+      },
+      "login": {
+        "max": 5,
+        "window": "15m"
+      }
+    },
+    "headers": {
+      "enabled": true
+    },
+    "secrets": {
+      "enabled": true
+    },
+    "audit": {
+      "enabled": false
+    }
+  },
+  "monitoring": {
+    "healthCheck": {
+      "enabled": true,
+      "path": "/health",
+      "requiresAuth": false
+    },
+    "requestId": {
+      "enabled": true
+    }
+  }
+}

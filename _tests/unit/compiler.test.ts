@@ -84,8 +84,8 @@ describe('Compiler', () => {
         {
           name: 'fields', nameToken: dummyToken, value: {
             type: 'object', properties: [
-              { name: 'email', value: { type: 'identifier', name: 'string' }, decorators: [{ name: 'unique' }, { name: 'optional' }] },
-              { name: 'role', value: { type: 'array', elements: ['admin', 'user'] }, decorators: [{ name: 'default', args: ['user'] }] },
+              { name: 'email', value: { type: 'identifier', name: 'text' }, decorators: [{ name: 'unique' }, { name: 'optional' }] },
+              { name: 'role', value: { type: 'function', name: 'select', args: ['admin', 'user'], token: dummyToken }, decorators: [{ name: 'default', args: ['user'] }] },
             ]
           }
         }
@@ -98,14 +98,14 @@ describe('Compiler', () => {
     
     const emailField = schema.collections[0].fields[0];
     expect(emailField.name).toBe('email');
-    expect(emailField.type).toBe('string');
+    expect(emailField.type).toBe('text');
     expect(emailField.unique).toBe(true);
     expect(emailField.optional).toBe(true);
 
     const roleField = schema.collections[0].fields[1];
     expect(roleField.name).toBe('role');
-    expect(roleField.type).toBe('enum');
-    expect(roleField.values).toEqual(['admin', 'user']);
+    expect(roleField.type).toBe('select');
+    expect(roleField.options).toEqual(['admin', 'user']);
     expect(roleField.default).toBe('user');
   });
 
@@ -115,7 +115,7 @@ describe('Compiler', () => {
         {
           name: 'fields', nameToken: dummyToken, value: {
             type: 'object', properties: [
-              { name: 'author', value: { type: 'function', name: 'link', args: ['users'], token: dummyToken } }
+              { name: 'author', value: { type: 'function', name: 'relationship', args: ['users'], token: dummyToken } }
             ]
           }
         }
@@ -124,7 +124,7 @@ describe('Compiler', () => {
 
     const { errors } = compile([ast]);
     expect(errors.length).toBe(1);
-    expect(errors[0].message).toContain("links to a non-existent collection 'users'");
+    expect(errors[0].message).toContain("relates to a non-existent collection 'users'");
   });
 
   test('compiles relationship fields successfully (One-to-One, Has-Many)', () => {
@@ -134,7 +134,7 @@ describe('Compiler', () => {
         {
           name: 'fields', nameToken: dummyToken, value: {
             type: 'object', properties: [
-              { name: 'author', value: { type: 'function', name: 'link', args: ['users'], token: dummyToken } }
+              { name: 'author', value: { type: 'function', name: 'relationship', args: ['users'], token: dummyToken } }
             ]
           }
         }

@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun --external postgres"
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun --external postgres && tsc --emitDeclarationOnly"
   },
   "dependencies": {
     "@codesordinatestudio/radiant-bun": "workspace:*",

@@ -42,7 +42,7 @@ export class JWTAuthenticator {
       expiresAt: number;
     }
   > = new Map();
-  private cleanupTimer: Timer;
+  private cleanupTimer: ReturnType<typeof setInterval>;
 
   constructor(config: JWTConfig, adapter: RadiantAdapter) {
     this.config = config;

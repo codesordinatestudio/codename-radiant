@@ -11,7 +11,7 @@ export class SemanticError extends Error {
   }
 }
 
-const ALLOWED_CONFIG = new Set(['core', 'security', 'monitoring', 'adminUI', 'apiPrefix', 'migrate']);
+const ALLOWED_CONFIG = new Set(['core', 'security', 'monitoring', 'adminUI', 'apiPrefix', 'migrate', 'output']);
 const ALLOWED_CORE = new Set(['api', 'openapi', 'upload']);
 const ALLOWED_SECURITY = new Set(['auth', 'cors', 'rateLimit', 'headers', 'secrets', 'audit']);
 const ALLOWED_AUTH = new Set(['strategies', 'jwt', 'session', 'apiKey', 'passwordPolicy', 'lockout']);
@@ -119,12 +119,28 @@ export function compile(rawAsts: any[]): { schema: any, errors: SemanticError[] 
     }
   }
 
+  const ALLOWED_FIELD_TYPES = new Set([
+    'array', 'boolean', 'date', 'email', 'enum', 'integer', 'json', 
+    'multiselect', 'number', 'password', 'relationship', 
+    'richtext', 'select', 'text', 'textarea', 'upload'
+  ]);
+
   // Basic Validation
   for (const col of schema.collections) {
     for (const field of col.fields) {
-      if (field.type === 'link') {
+      if (!ALLOWED_FIELD_TYPES.has(field.type)) {
+         errors.push(new SemanticError(`Validation Error: Unknown field type '${field.type}' in collection '${col.slug}'.`, field.typeToken || field.nameToken, col.uri));
+      }
+
+      if (field.type === 'relationship') {
         if (!seenCollections.has(field.target)) {
-           errors.push(new SemanticError(`Validation Error: Collection '${col.slug}' links to a non-existent collection '${field.target}'.`, field.targetToken, col.uri));
+           errors.push(new SemanticError(`Validation Error: Collection '${col.slug}' relates to a non-existent collection '${field.target}'.`, field.targetToken, col.uri));
+        }
+      }
+
+      if (field.type === 'select') {
+        if (!field.options || field.options.length === 0) {
+           errors.push(new SemanticError(`Validation Error: 'select' requires at least one option. Example: select("draft", "published")`, field.typeToken || field.nameToken, col.uri));
         }
       }
     }
@@ -164,17 +180,22 @@ function compileValue(val: any): any {
 function compileField(field: any): any {
   const result: any = {
     name: field.name,
+    nameToken: field.nameToken,
+    typeToken: field.value?.token || field.nameToken,
   };
   
   if (field.value && typeof field.value === 'object') {
     if (field.value.type === 'identifier') {
        result.type = field.value.name;
     } else if (field.value.type === 'function') {
-       result.type = field.value.name; // e.g. "link"
-       if (field.value.name === 'link' && field.value.args.length > 0) {
+       result.type = field.value.name; // e.g. "relationship"
+       if (field.value.name === 'relationship' && field.value.args.length > 0) {
           result.target = field.value.args[0]; // Wait, if args is a string literal, we don't have its token!
           // But we attached token to functionOrIdentifier itself! Let's use the function token.
           result.targetToken = field.value.token;
+       }
+       if (field.value.name === 'select') {
+          result.options = field.value.args || [];
        }
     } else if (field.value.type === 'array') {
        result.type = 'enum';

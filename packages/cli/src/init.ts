@@ -1,20 +1,35 @@
 import { mkdirSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import * as readline from 'readline/promises';
+import { stdin as input, stdout as output } from 'process';
 
-export function initCommand(options: any) {
-  const targetDir = options.dir || process.cwd();
+export async function initCommand(options: any) {
+  let projectName = options.dir;
+
+  if (!projectName) {
+    const rl = readline.createInterface({ input, output });
+    projectName = await rl.question('What is your project named? (default: my-radiant-app): ');
+    rl.close();
+  }
+
+  if (!projectName || projectName.trim() === '') {
+    projectName = 'my-radiant-app';
+  }
+
+  const targetDir = join(process.cwd(), projectName);
   const radiantDir = join(targetDir, 'radiant');
   const configPath = join(radiantDir, 'config.radiant');
 
-  if (existsSync(radiantDir) && existsSync(configPath)) {
+  if (existsSync(targetDir) && existsSync(configPath)) {
     console.error('❌ A radiant project is already initialized in this directory.');
     process.exit(1);
   }
 
-  // Create the radiant directory if it doesn't exist
+  // Create the project and radiant directory
   if (!existsSync(radiantDir)) {
     mkdirSync(radiantDir, { recursive: true });
-    console.log('✅ Created radiant directory.');
+    console.log(`✅ Created project folder: ${projectName}`);
+    console.log(`✅ Created radiant directory.`);
   }
 
   // Write the boilerplate
@@ -46,10 +61,10 @@ export function initCommand(options: any) {
 collection users {
   auth: true;
   fields: {
-    name: string;
+    name: text;
     email: email @unique;
     password: password;
-    role: string @default("user");
+    role: text @default("user");
   }
 }
 `;

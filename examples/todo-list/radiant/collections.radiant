@@ -12,6 +12,6 @@ collection todos {
   fields: {
     title: text,
     completed: boolean @default(false),
-    author: link("users")
+    author: relationship("users")
   };
 }

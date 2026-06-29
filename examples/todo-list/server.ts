@@ -1,13 +1,11 @@
-import schema from "./schema.json";
-import type { Collections } from "./radiant-types";
-import { RadiantRuntime, MemoryAdapter } from "../../runtime/bun/src";
-import type { RadiantAST } from "../../runtime/bun/core";
+import { createRadiant } from "./radiant";
+import { MemoryAdapter, RadiantRuntime } from "@codesordinatestudio/radiant-bun";
 import { postgres } from "../../plugins/postgres/src";
 
 async function main() {
-  const app = new RadiantRuntime<Collections>(schema as unknown as RadiantAST, {
-    // adapter: postgres({ url: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/radiant" }),
-    adapter: new MemoryAdapter()
+  const app = createRadiant({
+    adapter: postgres({ url: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/radiant" }),
+    //adapter: new MemoryAdapter()
   });
 
   // Attach access control rules

@@ -73,11 +73,18 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
       return;
     }
     const projectRoot = require('path').dirname(dir);
-    const outputPath = resolve(projectRoot, 'schema.json');
+    const configOutput = finalSchema.output;
+    
+    let outDir = dir;
+    if (configOutput) {
+      outDir = resolve(dir, configOutput);
+    }
+    
+    const outputPath = resolve(outDir, 'schema.json');
     
     // Strip internal compiler metadata out of the final JSON schema
     const cleanJson = JSON.stringify(finalSchema, (key, value) => {
-      if (key === 'targetToken' || key === 'token' || key === 'uri') {
+      if (key === 'targetToken' || key === 'token' || key === 'uri' || key === 'nameToken' || key === 'typeToken') {
         return undefined;
       }
       return value;
@@ -88,7 +95,7 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
 
     if (options.runtime === 'ts' || !options.runtime) {
       const typesOutput = generateTypeScript(finalSchema);
-      const typesPath = resolve(projectRoot, 'radiant-types.ts');
+      const typesPath = resolve(outDir, 'index.ts');
       writeFileSync(typesPath, typesOutput, 'utf-8');
       console.log(`Successfully generated ${typesPath}`);
     }

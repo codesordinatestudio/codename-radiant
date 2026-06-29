@@ -21,16 +21,16 @@ program.command('build')
 program.command('init')
   .description('Initialize a new Radiant project in the current directory')
   .option('-d, --dir <path>', 'Path to initialize the radiant project')
-  .action((options) => {
-    initCommand(options);
+  .action(async (options) => {
+    await initCommand(options);
   });
 
 program.command('dev')
   .description('Watch the radiant DSL and rebuild on changes')
   .option('-r, --runtime <type>', 'Runtime (e.g. ts, go)')
   .option('-d, --dir <path>', 'Path to the radiant directory')
-  .action((options) => {
-    devCommand(options);
+  .action(async (options) => {
+    await devCommand(options);
   });
 
 program.command('lsp')

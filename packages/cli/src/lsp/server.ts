@@ -32,7 +32,7 @@ connection.onInitialize((params: InitializeParams) => {
       
       completionProvider: {
         resolveProvider: false,
-        triggerCharacters: [' ', '\n']
+        triggerCharacters: [' ', '\n', '@', ':']
       }
     }
   };
@@ -51,7 +51,7 @@ connection.onInitialize((params: InitializeParams) => {
       
       completionProvider: {
         resolveProvider: false,
-        triggerCharacters: [' ', '\n']
+        triggerCharacters: [' ', '\n', '@', ':']
       }
     }
   };
@@ -214,9 +214,37 @@ function validateTextDocument(textDocument: TextDocument): void {
   connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
-connection.onCompletion((_textDocumentPosition) => {
-  return [
+connection.onCompletion((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) return [];
+
+  const text = document.getText();
+  const offset = document.offsetAt(params.position);
+  const textBefore = text.substring(0, offset);
+  const currentLine = textBefore.substring(textBefore.lastIndexOf('\n') + 1);
+
+  const fieldTypes = [
+    { label: 'array', kind: 14, detail: 'Array field', documentation: 'Stored as JSONB' },
+    { label: 'boolean', kind: 14, detail: 'Boolean field', documentation: 'Stored as BOOLEAN' },
+    { label: 'date', kind: 14, detail: 'Date field', documentation: 'Stored as TIMESTAMPTZ' },
+    { label: 'email', kind: 14, detail: 'Email field', documentation: 'Stored as TEXT' },
+    { label: 'integer', kind: 14, detail: 'Integer field', documentation: 'Stored as INTEGER' },
+    { label: 'json', kind: 14, detail: 'JSON field', documentation: 'Stored as JSONB' },
+    { label: 'multiselect', kind: 14, detail: 'Multi-select field', documentation: 'Stored as TEXT[]' },
+    { label: 'number', kind: 14, detail: 'Number field', documentation: 'Stored as NUMERIC' },
+    { label: 'password', kind: 14, detail: 'Password field', documentation: 'Stored as TEXT (hashed)' },
+    { label: 'relationship', kind: 14, detail: 'Relationship field', documentation: 'Stored as UUID (Foreign Key)' },
+    { label: 'richtext', kind: 14, detail: 'Rich text field', documentation: 'Stored as JSONB' },
+    { label: 'select', kind: 14, detail: 'Select field', documentation: 'Stored as TEXT' },
+    { label: 'text', kind: 14, detail: 'Text field', documentation: 'Stored as TEXT' },
+    { label: 'textarea', kind: 14, detail: 'Long text field', documentation: 'Stored as TEXT' },
+    { label: 'upload', kind: 14, detail: 'Upload field', documentation: 'Stored as JSONB' },
+    { label: 'env', kind: 3, detail: 'Environment variable (e.g. env("JWT_EXPIRY", "15m"))', documentation: 'Resolve value from environment at runtime' }
+  ];
+
+  const structuralTypes = [
     { label: 'config', kind: 14, detail: 'Global configuration block', documentation: 'Root level block for configuration' },
+    { label: 'output', kind: 14, detail: 'Output directory', documentation: 'Where to put generated files (e.g. "../src")' },
     { label: 'collection', kind: 14, detail: 'Define a database collection', documentation: 'Root level block for defining a collection' },
     { label: 'core', kind: 14, detail: 'Core framework settings', documentation: 'Allowed in config {}' },
     { label: 'api', kind: 14, detail: 'API settings', documentation: 'Allowed in core {}' },
@@ -264,9 +292,26 @@ connection.onCompletion((_textDocumentPosition) => {
     { label: 'requestId', kind: 14, detail: 'Request ID tracking', documentation: 'Allowed in monitoring {}' },
     
     { label: 'fields', kind: 14, detail: 'Define database schema fields', documentation: 'Allowed in collection {}' },
-    
-    { label: 'env', kind: 3, detail: 'Environment variable (e.g. env("JWT_EXPIRY", "15m"))', documentation: 'Resolve value from environment at runtime' },
   ];
+
+  const tokens = currentLine.trim().split(/\s+/);
+  const currentToken = tokens[tokens.length - 1];
+
+  if (currentToken.startsWith('@') || textBefore.endsWith('@')) {
+    return [
+      { label: 'unique', kind: 14, detail: 'Ensure field is unique', documentation: 'Create a unique constraint in the DB' },
+      { label: 'optional', kind: 14, detail: 'Mark field as optional', documentation: 'Allow null values' },
+      { label: 'default', kind: 3, detail: 'Set a default value', documentation: 'e.g. @default("user")' },
+      { label: 'hidden', kind: 14, detail: 'Hide field', documentation: 'Hide from API responses' },
+      { label: 'index', kind: 14, detail: 'Add database index', documentation: 'Improve query performance' }
+    ];
+  }
+
+  if (currentLine.includes(':')) {
+    return fieldTypes;
+  }
+
+  return structuralTypes;
 });
 
 connection.onDocumentFormatting((params) => {

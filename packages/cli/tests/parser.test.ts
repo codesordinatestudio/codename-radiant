@@ -13,17 +13,17 @@ test('parses a basic radiant schema', () => {
     collection users {
       auth: true;
       fields: {
-        name: string;
+        name: text;
         email: email @unique;
         role: ["admin", "user"] @default("user");
-        posts: link("posts")[];
+        posts: relationship("posts")[];
       }
     }
     
     collection posts {
       fields: {
-        title: string;
-        author: link("users");
+        title: text;
+        author: relationship("users");
       }
     }
   `;
@@ -43,6 +43,9 @@ test('parses a basic radiant schema', () => {
 
   const { schema: finalSchema, errors } = compile([rawAst]);
   expect(errors.length).toBe(0);
+  
+  // Snapshot test to catch any overall structural changes to the AST
+  expect(finalSchema).toMatchSnapshot();
   
   expect(finalSchema.apiPrefix).toBe("/api");
   expect(finalSchema.collections.length).toBe(2);
@@ -65,7 +68,7 @@ test('parses a basic radiant schema', () => {
   
   const postsField = usersCol.fields[3];
   expect(postsField.name).toBe("posts");
-  expect(postsField.type).toBe("link");
+  expect(postsField.type).toBe("relationship");
   expect(postsField.target).toBe("posts");
   expect(postsField.isArray).toBe(true);
 });
