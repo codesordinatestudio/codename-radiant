@@ -1,7 +1,7 @@
 import type { TSchema, Static } from "@sinclair/typebox";
 import { TypeCompiler, type TypeCheck } from "@sinclair/typebox/compiler";
 import { Value } from "@sinclair/typebox/value";
-import { RadiantError } from "./error";
+import { RadiantError } from "./utils/error";
 import type { RadiantRuntime } from "./runtime";
 import type { RadiantAST } from "../core/types";
 import type { RadiantRouteContext, RadiantParams, RadiantQuery } from "./request";

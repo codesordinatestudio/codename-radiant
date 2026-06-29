@@ -1,4 +1,4 @@
-export type ConstraintType = "foreign_key" | "unique" | "not_null" | "check";
+export type ConstraintType = "foreign_key" | "unique" | "not_null" | "check" | "exclusion";
 
 export interface ParsedConstraintError {
   type: ConstraintType;
