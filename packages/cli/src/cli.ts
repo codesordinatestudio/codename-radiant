@@ -46,7 +46,8 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     if (lexResult.errors.length > 0) {
       console.error(`Lexing errors in ${file}:`);
       lexResult.errors.forEach(err => console.error(err.message));
-      process.exit(1);
+      if (!options.isDev) process.exit(1);
+      return;
     }
 
     parserInstance.input = lexResult.tokens;
@@ -55,7 +56,8 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     if (parserInstance.errors.length > 0) {
       console.error(`Parsing errors in ${file}:`);
       parserInstance.errors.forEach(err => console.error(err.message));
-      process.exit(1);
+      if (!options.isDev) process.exit(1);
+      return;
     }
 
     const ast = visitorInstance.visit(cst);
@@ -67,7 +69,8 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     if (errors.length > 0) {
       console.error(`Semantic errors during compilation:`);
       errors.forEach(err => console.error(`- ${err.message}`));
-      process.exit(1);
+      if (!options.isDev) process.exit(1);
+      return;
     }
     const projectRoot = require('path').dirname(dir);
     const outputPath = resolve(projectRoot, 'schema.json');
@@ -91,6 +94,7 @@ export function buildCommand(options: { runtime?: string, dir?: string, isDev?: 
     }
   } catch (err: any) {
     console.error(`Compilation error: ${err.message}`);
-    process.exit(1);
+    if (!options.isDev) process.exit(1);
+    return;
   }
 }

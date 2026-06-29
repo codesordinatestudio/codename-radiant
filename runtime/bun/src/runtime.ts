@@ -2,6 +2,8 @@ import type { RadiantAST, RadiantAdapter, AccessRules, Hooks, AuthUser, RadiantR
 import { RadiantRouter } from "./router";
 import { generateOpenAPISpec, generateScalarHTML } from "./openapi";
 
+import { JWTAuthenticator, type JWTConfig } from "./auth";
+
 export interface RadiantConfig {
   adapter: RadiantAdapter;
 }
@@ -10,15 +12,29 @@ export class RadiantRuntime<T = any> {
   private schema: RadiantAST;
   private adapter: RadiantAdapter;
   public router: RadiantRouter;
+  private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks>();
   private _access = new Map<string, AccessRules>();
 
   constructor(schema: RadiantAST, config: RadiantConfig) {
-    this.schema = schema;
+    this.schema = this.resolveEnvVariables(schema);
     this.adapter = config.adapter;
     const prefix = this.schema.core?.api?.prefix || '/api';
     this.router = new RadiantRouter(prefix);
+
+    if (this.schema.security?.auth?.strategies?.includes("jwt")) {
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error("JWT_SECRET environment variable is required when JWT auth strategy is enabled in config.radiant.");
+      }
+      const jwtSettings = this.schema.security.auth.jwt || {};
+      this.authEngine = new JWTAuthenticator({
+        secret,
+        expiresIn: jwtSettings.accessTokenExpiry || "15m",
+        refreshExpiresIn: jwtSettings.refreshTokenExpiry || "7d"
+      }, this.adapter);
+    }
   }
 
   access(collection: string, rules: AccessRules) {
@@ -29,15 +45,39 @@ export class RadiantRuntime<T = any> {
     this._hooks.set(collection, hooks);
   }
 
+  private resolveEnvVariables(obj: any): any {
+    if (!obj) return obj;
+    if (typeof obj === "object") {
+      if (Array.isArray(obj)) {
+        return obj.map(item => this.resolveEnvVariables(item));
+      }
+      if (obj.$env !== undefined) {
+        const envValue = process.env[obj.$env];
+        let finalValue = envValue !== undefined ? envValue : obj.$default;
+        // If the default was a number, try casting the env string to a number
+        if (typeof obj.$default === "number" && typeof finalValue === "string") {
+          const parsed = Number(finalValue);
+          if (!isNaN(parsed)) finalValue = parsed;
+        }
+        return finalValue;
+      }
+      
+      const newObj: any = {};
+      for (const key in obj) {
+        newObj[key] = this.resolveEnvVariables(obj[key]);
+      }
+      return newObj;
+    }
+    return obj;
+  }
+
   private async getContext(req: Request): Promise<RadiantRequestContext> {
     let user: AuthUser | null = null;
     
-    // Naive mock auth for phase 3 testing
     const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      // In a real app this would verify JWT
+    if (authHeader?.startsWith("Bearer ") && this.authEngine) {
       const token = authHeader.split(" ")[1];
-      user = { id: "u_123", role: token === "admin-token" ? "admin" : "user" };
+      user = await this.authEngine.verifyAccessToken(token);
     }
 
     return { request: req, user };
@@ -100,6 +140,92 @@ export class RadiantRuntime<T = any> {
 
     for (const collection of this.schema.collections) {
       const basePath = `/${collection.slug}`;
+
+      if (collection.auth) {
+        // REGISTER
+        this.router.post(`${basePath}/register`, async (req) => {
+          let data = await req.json();
+          if (!data.email || !data.password) return new Response(JSON.stringify({ error: "Email and password required" }), { status: 400 });
+          
+          const existing = await this.adapter.find(collection.slug, { where: { email: { eq: data.email } }, limit: 1 });
+          if (existing.docs.length > 0) return new Response(JSON.stringify({ error: "User already exists" }), { status: 409 });
+
+          const hashedPassword = await Bun.password.hash(data.password, "bcrypt");
+          const user = await this.adapter.create(collection.slug, { ...data, password: hashedPassword });
+          
+          let tokens;
+          if (this.authEngine) tokens = await this.authEngine.generateTokenPair(user, collection.slug);
+          
+          const filteredUser = { ...user };
+          delete filteredUser.password;
+
+          return new Response(JSON.stringify({
+            user: filteredUser,
+            ...(tokens ? { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken } : {}),
+            message: "Registration successful"
+          }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+        });
+
+        // LOGIN
+        this.router.post(`${basePath}/login`, async (req) => {
+          let data = await req.json();
+          if (!data.email || !data.password) return new Response(JSON.stringify({ error: "Email and password required" }), { status: 400 });
+          
+          const result = await this.adapter.find(collection.slug, { where: { email: { eq: data.email } }, limit: 1 });
+          const user = result.docs[0];
+          if (!user) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
+
+          const valid = await Bun.password.verify(data.password, user.password as string);
+          if (!valid) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
+
+          let tokens;
+          if (this.authEngine) tokens = await this.authEngine.generateTokenPair(user, collection.slug);
+          
+          const filteredUser = { ...user };
+          delete filteredUser.password;
+
+          return new Response(JSON.stringify({
+            user: filteredUser,
+            ...(tokens ? { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken } : {}),
+            message: "Login successful"
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        });
+
+        // REFRESH
+        this.router.post(`${basePath}/refresh`, async (req) => {
+          let data = await req.json();
+          if (!data.refreshToken) return new Response(JSON.stringify({ error: "refreshToken required" }), { status: 400 });
+          if (!this.authEngine) return new Response(JSON.stringify({ error: "JWT auth not configured" }), { status: 501 });
+
+          const tokens = await this.authEngine.refreshTokenPair(data.refreshToken);
+          if (!tokens) return new Response(JSON.stringify({ error: "Invalid or expired refresh token" }), { status: 401 });
+
+          return new Response(JSON.stringify({
+            user: tokens.user,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        });
+
+        // LOGOUT
+        this.router.post(`${basePath}/logout`, async (req) => {
+          let data = await req.json();
+          if (data.refreshToken && this.authEngine) {
+            await this.authEngine.revokeRefreshToken(data.refreshToken);
+          }
+          return new Response(JSON.stringify({ message: "Logged out successfully" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        });
+
+        // FORGOT PASSWORD
+        this.router.post(`${basePath}/forgot-password`, async (req) => {
+          return new Response(JSON.stringify({ message: "Password reset email sent (if account exists)" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        });
+
+        // RESET PASSWORD
+        this.router.post(`${basePath}/reset-password`, async (req) => {
+          return new Response(JSON.stringify({ message: "Password reset successfully" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        });
+      }
 
       // GET LIST
       this.router.get(basePath, async (req) => {

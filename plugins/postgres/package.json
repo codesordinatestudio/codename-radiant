@@ -1,0 +1,23 @@
+{
+  "name": "@codesordinatestudio/radiant-plugin-postgres",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun --external postgres"
+  },
+  "dependencies": {
+    "@codesordinatestudio/radiant-bun": "workspace:*",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.0.0"
+  },
+  "sideEffects": false
+}

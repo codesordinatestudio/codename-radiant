@@ -9,5 +9,9 @@
   },
   "peerDependencies": {
     "typescript": "^7.0.1-rc"
+  },
+  "dependencies": {
+    "@codesordinatestudio/radiant-bun": "workspace:*",
+    "@codesordinatestudio/radiant-plugin-postgres": "workspace:*"
   }
 }

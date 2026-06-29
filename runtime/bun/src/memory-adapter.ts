@@ -1,11 +1,13 @@
 import type { RadiantAdapter, QueryArgs, PaginatedResult } from "../core";
 
 export class MemoryAdapter implements RadiantAdapter {
-  name = "memory-adapter";
+  name = "memory";
+  readonly adapterType = "memory";
   private store: Record<string, Record<string, unknown>[]> = {};
 
   async connect(): Promise<void> {}
   async disconnect(): Promise<void> {}
+  async ping(): Promise<void> {}
 
   async find(collection: string, query: QueryArgs): Promise<PaginatedResult> {
     const docs = this.store[collection] || [];

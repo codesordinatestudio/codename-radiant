@@ -11,7 +11,7 @@ export class SemanticError extends Error {
   }
 }
 
-const ALLOWED_CONFIG = new Set(['core', 'security', 'monitoring', 'adminUI']);
+const ALLOWED_CONFIG = new Set(['core', 'security', 'monitoring', 'adminUI', 'apiPrefix']);
 const ALLOWED_CORE = new Set(['api', 'openapi', 'upload']);
 const ALLOWED_SECURITY = new Set(['auth', 'cors', 'rateLimit', 'headers', 'secrets', 'audit']);
 const ALLOWED_AUTH = new Set(['strategies', 'jwt', 'session', 'apiKey', 'passwordPolicy', 'lockout']);
@@ -33,34 +33,47 @@ export function compile(rawAsts: any[]): { schema: any, errors: SemanticError[] 
           if (!ALLOWED_CONFIG.has(prop.name)) {
              errors.push(new SemanticError(`Unknown property '${prop.name}' in config block.`, prop.nameToken, ast.uri));
           }
-          if (prop.name === 'core' && prop.value.type === 'object') {
-             prop.value.properties.forEach((coreProp: any) => {
-                if (!ALLOWED_CORE.has(coreProp.name)) {
-                   errors.push(new SemanticError(`Unknown property '${coreProp.name}' in core block.`, coreProp.nameToken, ast.uri));
-                }
-             });
+          if (prop.name === 'core') {
+             if (prop.value && prop.value.type === 'object' && Array.isArray(prop.value.properties)) {
+                prop.value.properties.forEach((coreProp: any) => {
+                   if (!ALLOWED_CORE.has(coreProp.name)) {
+                      errors.push(new SemanticError(`Unknown property '${coreProp.name}' in core block.`, coreProp.nameToken, ast.uri));
+                   }
+                });
+             } else {
+                errors.push(new SemanticError(`Expected an object block for 'core'`, prop.nameToken, ast.uri));
+             }
           }
-          if (prop.name === 'security' && prop.value.type === 'object') {
-             prop.value.properties.forEach((secProp: any) => {
-                if (!ALLOWED_SECURITY.has(secProp.name)) {
-                   errors.push(new SemanticError(`Unknown property '${secProp.name}' in security block.`, secProp.nameToken, ast.uri));
-                }
-                if (secProp.name === 'auth' && secProp.value.type === 'object') {
-                   secProp.value.properties.forEach((authProp: any) => {
-                      if (!ALLOWED_AUTH.has(authProp.name)) {
-                         errors.push(new SemanticError(`Unknown property '${authProp.name}' in auth block.`, authProp.nameToken, ast.uri));
-                      }
-                   });
-                }
-             });
+          if (prop.name === 'security') {
+             if (prop.value && prop.value.type === 'object' && Array.isArray(prop.value.properties)) {
+                prop.value.properties.forEach((secProp: any) => {
+                   if (!ALLOWED_SECURITY.has(secProp.name)) {
+                      errors.push(new SemanticError(`Unknown property '${secProp.name}' in security block.`, secProp.nameToken, ast.uri));
+                   }
+                   if (secProp.name === 'auth' && secProp.value && secProp.value.type === 'object' && Array.isArray(secProp.value.properties)) {
+                      secProp.value.properties.forEach((authProp: any) => {
+                         if (!ALLOWED_AUTH.has(authProp.name)) {
+                            errors.push(new SemanticError(`Unknown property '${authProp.name}' in auth block.`, authProp.nameToken, ast.uri));
+                         }
+                      });
+                   }
+                });
+             } else {
+                errors.push(new SemanticError(`Expected an object block for 'security'`, prop.nameToken, ast.uri));
+             }
           }
-          if (prop.name === 'monitoring' && prop.value.type === 'object') {
-             prop.value.properties.forEach((monProp: any) => {
-                if (!ALLOWED_MONITORING.has(monProp.name)) {
-                   errors.push(new SemanticError(`Unknown property '${monProp.name}' in monitoring block.`, monProp.nameToken, ast.uri));
-                }
-             });
+          if (prop.name === 'monitoring') {
+             if (prop.value && prop.value.type === 'object' && Array.isArray(prop.value.properties)) {
+                prop.value.properties.forEach((monProp: any) => {
+                   if (!ALLOWED_MONITORING.has(monProp.name)) {
+                      errors.push(new SemanticError(`Unknown property '${monProp.name}' in monitoring block.`, monProp.nameToken, ast.uri));
+                   }
+                });
+             } else {
+                errors.push(new SemanticError(`Expected an object block for 'monitoring'`, prop.nameToken, ast.uri));
+             }
           }
+
           schema[prop.name] = compileValue(prop.value);
         });
       } else if (block.type === 'collection') {
@@ -122,6 +135,15 @@ function compileValue(val: any): any {
      }
      if (val.type === 'identifier') {
         return val.name;
+     }
+     if (val.type === 'function' && val.name === 'env') {
+        if (!val.args || val.args.length === 0 || typeof val.args[0] !== 'string') {
+           throw new Error("env() manipulator requires at least one string argument for the environment variable name.");
+        }
+        return {
+           $env: val.args[0],
+           $default: val.args[1] !== undefined ? val.args[1] : null
+        };
      }
   }
   return val;

@@ -216,30 +216,56 @@ function validateTextDocument(textDocument: TextDocument): void {
 
 connection.onCompletion((_textDocumentPosition) => {
   return [
-    {
-      label: 'apiPrefix',
-      kind: 14,
-      detail: 'Set the global API prefix (e.g. "/api")',
-      documentation: 'Allowed in config {}'
-    },
-    {
-      label: 'auth',
-      kind: 14,
-      detail: 'Enable authentication',
-      documentation: 'Allowed in collection {} or security {}'
-    },
-    {
-      label: 'fields',
-      kind: 14,
-      detail: 'Define database schema fields',
-      documentation: 'Allowed in collection {}'
-    },
-    {
-      label: 'strategies',
-      kind: 14,
-      detail: 'Set authentication strategies (e.g. ["jwt"])',
-      documentation: 'Allowed in auth {}'
-    }
+    { label: 'config', kind: 14, detail: 'Global configuration block', documentation: 'Root level block for configuration' },
+    { label: 'collection', kind: 14, detail: 'Define a database collection', documentation: 'Root level block for defining a collection' },
+    { label: 'core', kind: 14, detail: 'Core framework settings', documentation: 'Allowed in config {}' },
+    { label: 'api', kind: 14, detail: 'API settings', documentation: 'Allowed in core {}' },
+    { label: 'prefix', kind: 14, detail: 'Set the global API prefix (e.g. "/api")', documentation: 'Allowed in api {}' },
+    { label: 'maxBodyBytes', kind: 14, detail: 'Max request body size', documentation: 'Allowed in api {}' },
+    { label: 'trustedProxies', kind: 14, detail: 'List of trusted proxies', documentation: 'Allowed in api {}' },
+    
+    { label: 'adminUI', kind: 14, detail: 'Admin UI configuration', documentation: 'Allowed in config {}' },
+    { label: 'enabled', kind: 14, detail: 'Enable or disable a feature', documentation: 'Used in many blocks' },
+    { label: 'user', kind: 14, detail: 'The collection used for admin users', documentation: 'Allowed in adminUI {}' },
+    
+    { label: 'security', kind: 14, detail: 'Security policies and settings', documentation: 'Allowed in config {}' },
+    { label: 'auth', kind: 14, detail: 'Authentication settings', documentation: 'Allowed in collection {} or security {}' },
+    { label: 'strategies', kind: 14, detail: 'Set authentication strategies (e.g. ["jwt", "session"])', documentation: 'Allowed in auth {}' },
+    { label: 'jwt', kind: 14, detail: 'JWT specific settings', documentation: 'Allowed in auth {}' },
+    { label: 'accessTokenExpiry', kind: 14, detail: 'e.g. "15m"', documentation: 'Allowed in jwt {}' },
+    { label: 'refreshTokenExpiry', kind: 14, detail: 'e.g. "7d"', documentation: 'Allowed in jwt {}' },
+    { label: 'cookies', kind: 14, detail: 'Cookie settings', documentation: 'Allowed in jwt {}' },
+    { label: 'passwordPolicy', kind: 14, detail: 'Password validation rules', documentation: 'Allowed in auth {}' },
+    { label: 'minLength', kind: 14, detail: 'Minimum password length', documentation: 'Allowed in passwordPolicy {}' },
+    { label: 'requireUppercase', kind: 14, detail: 'Require uppercase letter', documentation: 'Allowed in passwordPolicy {}' },
+    { label: 'requireNumber', kind: 14, detail: 'Require number', documentation: 'Allowed in passwordPolicy {}' },
+    { label: 'lockout', kind: 14, detail: 'Account lockout settings', documentation: 'Allowed in auth {}' },
+    { label: 'maxAttempts', kind: 14, detail: 'Max failed logins', documentation: 'Allowed in lockout {}' },
+    { label: 'durationMinutes', kind: 14, detail: 'Lockout duration', documentation: 'Allowed in lockout {}' },
+    
+    { label: 'cors', kind: 14, detail: 'CORS settings', documentation: 'Allowed in security {}' },
+    { label: 'origin', kind: 14, detail: 'Allowed origins', documentation: 'Allowed in cors {}' },
+    { label: 'credentials', kind: 14, detail: 'Allow credentials', documentation: 'Allowed in cors {}' },
+    
+    { label: 'rateLimit', kind: 14, detail: 'Rate limiting rules', documentation: 'Allowed in security {}' },
+    { label: 'write', kind: 14, detail: 'Rate limit for writes', documentation: 'Allowed in rateLimit {}' },
+    { label: 'login', kind: 14, detail: 'Rate limit for logins', documentation: 'Allowed in rateLimit {}' },
+    { label: 'max', kind: 14, detail: 'Max requests', documentation: 'Allowed in rateLimit {}' },
+    { label: 'window', kind: 14, detail: 'Time window (e.g. "15m")', documentation: 'Allowed in rateLimit {}' },
+    
+    { label: 'headers', kind: 14, detail: 'Security headers configuration', documentation: 'Allowed in security {}' },
+    { label: 'secrets', kind: 14, detail: 'Secret management configuration', documentation: 'Allowed in security {}' },
+    { label: 'audit', kind: 14, detail: 'Audit logging configuration', documentation: 'Allowed in security {}' },
+
+    { label: 'monitoring', kind: 14, detail: 'Monitoring and health checks', documentation: 'Allowed in config {}' },
+    { label: 'healthCheck', kind: 14, detail: 'Health check endpoint', documentation: 'Allowed in monitoring {}' },
+    { label: 'path', kind: 14, detail: 'Health check path (e.g. "/health")', documentation: 'Allowed in healthCheck {}' },
+    { label: 'requiresAuth', kind: 14, detail: 'Does health check require auth', documentation: 'Allowed in healthCheck {}' },
+    { label: 'requestId', kind: 14, detail: 'Request ID tracking', documentation: 'Allowed in monitoring {}' },
+    
+    { label: 'fields', kind: 14, detail: 'Define database schema fields', documentation: 'Allowed in collection {}' },
+    
+    { label: 'env', kind: 3, detail: 'Environment variable (e.g. env("JWT_EXPIRY", "15m"))', documentation: 'Resolve value from environment at runtime' },
   ];
 });
 

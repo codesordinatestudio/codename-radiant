@@ -11,8 +11,48 @@ export interface RadiantAST {
     enabled?: boolean;
     user?: string;
   };
-  security?: any;
-  monitoring?: any;
+  security?: {
+    auth?: {
+      strategies?: string[];
+      jwt?: {
+        accessTokenExpiry?: string;
+        refreshTokenExpiry?: string;
+        cookies?: {
+          enabled?: boolean;
+        };
+      };
+      passwordPolicy?: {
+        minLength?: number;
+        requireUppercase?: boolean;
+        requireNumber?: boolean;
+      };
+      lockout?: {
+        maxAttempts?: number;
+        durationMinutes?: number;
+      };
+    };
+    cors?: {
+      origin?: string[];
+      credentials?: boolean;
+    };
+    rateLimit?: {
+      write?: { max?: number; window?: string; };
+      login?: { max?: number; window?: string; };
+    };
+    headers?: { enabled?: boolean; };
+    secrets?: { enabled?: boolean; };
+    audit?: { enabled?: boolean; };
+  };
+  monitoring?: {
+    healthCheck?: {
+      enabled?: boolean;
+      path?: string;
+      requiresAuth?: boolean;
+    };
+    requestId?: {
+      enabled?: boolean;
+    };
+  };
 }
 
 export interface CollectionConfig {

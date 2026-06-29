@@ -59,7 +59,10 @@
         "session"
       ],
       "jwt": {
-        "accessTokenExpiry": "15m",
+        "accessTokenExpiry": {
+          "$env": "JWT_EXPIRY",
+          "$default": "15m"
+        },
         "refreshTokenExpiry": "7d",
         "cookies": {
           "enabled": true
@@ -71,7 +74,10 @@
         "requireNumber": true
       },
       "lockout": {
-        "maxAttempts": 5,
+        "maxAttempts": {
+          "$env": "LOGIN_ATTEMPTS",
+          "$default": 5
+        },
         "durationMinutes": 15
       }
     },
