@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { RadiantRuntime } from '../src/main/runtime';
-import type { RadiantAdapter } from '../src/core/types';
+import type { RadiantAdapter } from '../src/core';
 
 describe('RadiantRuntime', () => {
   let mockAdapter: RadiantAdapter;
@@ -8,9 +8,12 @@ describe('RadiantRuntime', () => {
 
   beforeEach(() => {
     mockAdapter = {
+      adapterType: "mock",
       connect: async () => {},
+      disconnect: async () => {},
+      count: async () => 0,
       create: async () => ({}),
-      find: async () => ({ docs: [], total: 0 }),
+      find: async () => ({ docs: [], totalDocs: 0, limit: 10, page: 1, totalPages: 1, pagingCounter: 1, hasPrevPage: false, hasNextPage: false, prevPage: null, nextPage: null }),
       findById: async () => null,
       update: async () => ({}),
       delete: async () => {}
@@ -125,7 +128,7 @@ describe('RadiantRuntime', () => {
     
     const res = await runtime.fetch(req);
     expect(res.status).toBe(501);
-    const body = await res.json();
+    const body: any = await res.json();
     expect(body.error).toBe("JWT auth not configured");
   });
 
@@ -286,24 +289,27 @@ describe('RadiantRuntime', () => {
       let db: any = { posts: [{ id: '1', title: 'Hello' }], users: [{ id: 'admin', email: 'admin@test.com', password: await Bun.password.hash('secret', 'bcrypt') }] };
       
       const mockStorage: RadiantAdapter = {
+        adapterType: "mock",
         connect: async () => {},
-        create: async (col, data) => {
+        disconnect: async () => {},
+        count: async () => 0,
+        create: async (col: string, data: any) => {
           const item = { id: crypto.randomUUID(), ...data };
           if (!db[col]) db[col] = [];
           db[col].push(item);
           return item;
         },
-        find: async (col, q) => {
+        find: async (col: string, q: any) => {
           let docs = db[col] || [];
           if (q?.where?.email?.eq) {
             docs = docs.filter((d: any) => d.email === q.where.email.eq);
           }
-          return { docs, total: docs.length };
+          return { docs, totalDocs: docs.length, limit: 10, page: 1, totalPages: 1, pagingCounter: 1, hasPrevPage: false, hasNextPage: false, prevPage: null, nextPage: null };
         },
-        findById: async (col, id) => {
+        findById: async (col: string, id: string) => {
           return (db[col] || []).find((d: any) => d.id === id) || null;
         },
-        update: async (col, id, data) => {
+        update: async (col: string, id: string, data: any) => {
           const idx = (db[col] || []).findIndex((d: any) => d.id === id);
           if (idx >= 0) {
             db[col][idx] = { ...db[col][idx], ...data };
@@ -311,7 +317,7 @@ describe('RadiantRuntime', () => {
           }
           throw new Error('Not found');
         },
-        delete: async (col, id) => {
+        delete: async (col: string, id: string) => {
           db[col] = (db[col] || []).filter((d: any) => d.id !== id);
         }
       };
@@ -323,14 +329,14 @@ describe('RadiantRuntime', () => {
     test('GET list returns collection data', async () => {
       const res = await runtime.fetch(new Request('http://localhost/api/posts'));
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.docs[0].title).toBe('Hello');
     });
 
     test('GET by ID returns specific document', async () => {
       const res = await runtime.fetch(new Request('http://localhost/api/posts/1'));
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.title).toBe('Hello');
     });
 
@@ -341,7 +347,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.title).toBe('New Post');
       expect(data.id).toBeDefined();
     });
@@ -353,7 +359,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.title).toBe('Updated Post');
       expect(data.id).toBe('1');
     });
@@ -364,7 +370,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.deleted).toBe(true);
 
       // Verify it's actually deleted
@@ -399,7 +405,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.modified).toBe(true);
     });
 
@@ -410,7 +416,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.accessToken).toBeDefined();
       expect(data.refreshToken).toBeDefined();
       expect(data.user.password).toBeUndefined(); // password stripped
@@ -423,7 +429,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(401);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.error).toBe('Invalid credentials');
     });
 
@@ -434,7 +440,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.accessToken).toBeDefined();
       expect(data.user.email).toBe('new@test.com');
       expect(data.user.password).toBeUndefined();
@@ -447,7 +453,7 @@ describe('RadiantRuntime', () => {
       });
       const res = await runtime.fetch(req);
       expect(res.status).toBe(409);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.error).toBe('User already exists');
     });
 
@@ -458,7 +464,7 @@ describe('RadiantRuntime', () => {
         body: JSON.stringify({ email: 'admin@test.com', password: 'secret' })
       });
       const loginRes = await runtime.fetch(loginReq);
-      const { refreshToken } = await loginRes.json();
+      const { refreshToken } = (await loginRes.json()) as any;
 
       // 2. Logout
       const logoutReq = new Request('http://localhost/api/users/logout', {
@@ -555,10 +561,8 @@ describe('RadiantRuntime', () => {
 
       const res = await runtime.fetch(req);
       expect(res.status).toBe(201);
-      const data = await res.json();
+      const data: any = await res.json();
       expect(data.url).toBeDefined();
       expect(data.originalName).toBe("test.txt");
     });
   });
-
-

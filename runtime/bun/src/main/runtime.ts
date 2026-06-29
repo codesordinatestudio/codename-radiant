@@ -1,4 +1,4 @@
-import type { RadiantAST, RadiantAdapter, StorageProvider, CacheStore } from "../core";
+import type { RadiantAST, RadiantAdapter, StorageProvider, CacheStore, RadiantPlugin } from "../core";
 import type { AccessRules, AuthUser, RadiantRequestContext } from "./access";
 import type { Hooks } from "./hooks";
 import { RadiantRouter } from "./router";
@@ -14,14 +14,16 @@ export interface RadiantConfig {
   adapter: RadiantAdapter;
   storage?: StorageProvider;
   cache?: CacheStore;
+  plugins?: RadiantPlugin[];
 }
 
 export class RadiantRuntime<TCollections extends Record<string, any> = Record<string, any>> {
   private schema: RadiantAST;
-  private adapter: RadiantAdapter;
+  public adapter: RadiantAdapter;
   public router: RadiantRouter<TCollections>;
   public storage: StorageProvider;
   public cache: CacheStore;
+  public plugins: RadiantPlugin[];
   private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks<any, any>>();
@@ -34,6 +36,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     const prefix = this.schema.core?.api?.prefix || '/api';
     this.storage = config.storage || new LocalStorageProvider('uploads', prefix);
     this.cache = config.cache || new MemoryCacheStore();
+    this.plugins = config.plugins || [];
     this.router = new RadiantRouter();
 
     if (this.schema.security?.auth?.strategies?.includes("jwt")) {
@@ -500,12 +503,19 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   async start(options: { port?: number } = {}) {
+    // 1. Run Plugin Initializations
+    for (const plugin of this.plugins) {
+      if (plugin.onInit) {
+        await plugin.onInit(this);
+      }
+    }
+
     await this.adapter.connect();
     await this.syncDatabaseSchema();
     await this.buildRoutes();
 
     const server = Bun.serve({
-      port: options.port || 3000,
+      port: options.port ?? 3000,
       fetch: async (req) => { const ctx = await this.getContext(req); const res = await this.router.handle(req, undefined, ctx.user, this); return res || new Response("Not found", { status: 404 }); },
       websocket: RadiantWebsocket.handlers(),
     });
