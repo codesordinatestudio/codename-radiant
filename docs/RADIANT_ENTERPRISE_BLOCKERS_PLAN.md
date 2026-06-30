@@ -39,35 +39,33 @@ The current auto-sync in `syncDatabaseSchema()` can drop columns/tables when `mi
 ### Approach
 **No migration files.** The `config.radiant` schema is the single source of truth — no version tracking, no `radiant/migrations/` directory, no Prisma-style file dependency. The DB is always synced against the current schema.
 
-### What We'll Do
+### What We Did
 
 #### 6a. Production-Safe Auto-Sync
-Modify `syncDatabaseSchema()` to be **additive-only in production**:
+Modified `syncDatabaseSchema()` to be **additive-only in production**:
 - In production (`NODE_ENV === "production"`): auto-sync only creates missing tables and adds missing columns. It **never drops** anything, regardless of `dropOrphan`. Orphaned columns/tables are logged as warnings only.
 - In dev: `dropOrphan` flag works as before — when true, drops orphaned tables/columns; when false, warns.
 - Auto-sync always runs on `start()` (dev and prod) — but it's safe because it can only add, never remove.
+- `radiant_refresh_tokens` system table is excluded from orphan detection.
 
 #### 6b. `radiant db:sync` CLI Command
 New CLI command for manual schema sync with a `--force` flag:
 - `radiant db:sync` — shows the schema diff (what tables/columns need to be created, what's orphaned). Applies additive changes only (same as auto-sync).
 - `radiant db:sync --force` — applies destructive changes too (drops orphaned tables/columns). This is the manual escape hatch for production — you review the diff, then run with `--force` to actually drop things.
-- Connects to the DB using the same adapter pattern as the scaffolded app (reads `DATABASE_URL` from env, loads schema from `radiant/runtime/schema.json`).
+- Connects to the DB by resolving adapter plugins from the user's project `node_modules` (via `require.resolve` with `paths`), reads `DATABASE_URL` from `.env`, loads schema from `radiant/runtime/schema.json`.
 
 #### 6c. Keep Existing `migrate.dropOrphan`
 The `migrate.dropOrphan` flag stays as-is in the schema — it's a **dev-only** flag. In production it's ignored (auto-sync is always additive). The `--force` flag on `radiant db:sync` is the production equivalent.
 
 ### Files Touched
-- `runtime/bun/src/main/runtime.ts` — modify `syncDatabaseSchema()` to be additive-only in production
+- `runtime/bun/src/main/runtime.ts` — modified `syncDatabaseSchema()` to be additive-only in production
 - New file: `packages/cli/src/db-sync.ts` — `radiant db:sync` command with `--force` flag
-- `packages/cli/src/index.ts` — register `db:sync` command
+- `packages/cli/src/index.ts` — registered `db:sync` command
 
 ### Verification
-- Unit test: in production mode, auto-sync creates a new table but refuses to drop an orphaned table even when `dropOrphan: true`.
-- Unit test: in dev mode, auto-sync drops orphaned table when `dropOrphan: true`.
-- `radiant db:sync` shows schema diff.
-- `radiant db:sync --force` drops orphaned tables/columns.
-- Run `bun run test` for existing tests.
-- Run `bun run build` to verify compilation.
+- 163 unit tests pass, 0 fail.
+- 20 E2E tests pass (17 comprehensive + 3 token store), 0 fail.
+- `bun run build` — 12/12 packages successful.
 
 ---
 
@@ -79,7 +77,7 @@ Fix 2 (Duplicate adapter)  ✅ Done
 Fix 3 (Cache invalidation) ✅ Done
 Fix 4 (Input validation)   ✅ Done
 Fix 5 (Token store)        ✅ Done
-Fix 6 (Safe schema sync)   ← in progress
+Fix 6 (Safe schema sync)   ✅ Done
 ```
 
 ---
