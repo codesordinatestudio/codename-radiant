@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { RadiantRuntime } from "../../runtime/bun/src/main/runtime";
 import { PostgresAdapter } from "../../plugins/ts/postgres/src/index";
 import { NodemailerTransport } from "../../plugins/ts/nodemailer/src/index";
+import { RadiantQueueManager } from "../../runtime/bun/src/utils/queue-manager";
 
 describe("E2E: Comprehensive Todo Application Lifecycle", () => {
   let runtime: RadiantRuntime;
@@ -10,6 +11,12 @@ describe("E2E: Comprehensive Todo Application Lifecycle", () => {
   let userToken = "";
   let createdTaskId = "";
   let userId = "";
+  let secondUserId = "";
+  let secondUserToken = "";
+  let sideEffectHookTriggered = false;
+  let cronFiredCount = 0;
+  let workerJobResult: any = null;
+  let customEndpointHit = false;
 
   beforeAll(async () => {
     process.env.JWT_SECRET = "super-secure-e2e-secret";
@@ -24,6 +31,14 @@ describe("E2E: Comprehensive Todo Application Lifecycle", () => {
 
     // 2. Setup the real Postgres Adapter pointing to local docker compose
     const pgAdapter = new PostgresAdapter("postgres://radiant:password@127.0.0.1:5433/radiant_test");
+
+    // 2.5 Setup QueueManager
+    RadiantQueueManager.initialize({
+      provider: "bullmq",
+      bullmq: {
+        connection: { host: "127.0.0.1", port: 6380 }
+      }
+    });
 
     // 3. Define the comprehensive Todo Schema
     const schema: any = {
@@ -72,6 +87,50 @@ describe("E2E: Comprehensive Todo Application Lifecycle", () => {
           })
         }
       }
+    });
+
+    // 4. Configure Advanced Lifecycle Hooks
+    runtime.hooks("tasks", {
+      beforeCreate: async (ctx) => {
+        // Mutate doc title dynamically
+        ctx.data.title = `${ctx.data.title} - AutoFormatted`;
+        return ctx.data;
+      },
+      afterCreate: async (ctx) => {
+        sideEffectHookTriggered = true; // Set external side effect tracking
+      }
+    });
+
+    // 5. Configure Access Rules (Layer 5)
+    runtime.access("tasks", {
+      update: async (ctx) => {
+        // For testing, we'll allow access unless user is our hacker user
+        if (ctx.user?.id) {
+           const user = await ctx.radiant.adapter.findById("users", ctx.user.id);
+           if (user?.email === "hacker@example.com") {
+             return false; // Deny hacker
+           }
+        }
+        return true;
+      }
+    });
+
+    // 6. Custom Endpoints
+    runtime.router.post("/api/custom-test", async (ctx: any) => {
+      customEndpointHit = true;
+      return new Response(JSON.stringify({ custom: "hit" }), { status: 200, headers: { 'Content-Type': 'application/json' }});
+    });
+
+    // 7. Workers
+    const qm = RadiantQueueManager.getInstance();
+    qm.registerWorker("e2e-worker", async (job) => {
+      workerJobResult = { name: job.name, data: job.data };
+      return true;
+    });
+
+    // 8. Cron
+    runtime.cron("e2e-cron", "* * * * *", async (ctx) => {
+      cronFiredCount++;
     });
 
     server = await runtime.start({ port: 0 }); // Spin up on random available port
@@ -201,7 +260,7 @@ describe("E2E: Comprehensive Todo Application Lifecycle", () => {
       );
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data.title).toBe("Master Radiant Framework");
+      expect(data.title).toBe("Master Radiant Framework - AutoFormatted");
       expect(data.completed).toBe(false); // Default value applied
       expect(data.authorId).toBe(userId);
       createdTaskId = data.id;
@@ -283,4 +342,135 @@ describe("E2E: Comprehensive Todo Application Lifecycle", () => {
       expect(checkRes.status).toBe(404);
     });
   });
+
+  // ---------------------------------------------------------
+  // LAYER 4: CUSTOM ENDPOINTS
+  // ---------------------------------------------------------
+  describe("Custom Endpoints Layer", () => {
+    test("Should hit custom endpoint successfully", async () => {
+      const response = await server.fetch(
+        new Request("http://localhost/api/custom-test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        })
+      );
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.custom).toBe("hit");
+      expect(customEndpointHit).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------
+  // LAYER 5: HOOKS
+  // ---------------------------------------------------------
+  describe("Lifecycle Hooks Layer", () => {
+    test("Should mutate data via beforeCreate hook", async () => {
+      const response = await server.fetch(
+        new Request("http://localhost/api/tasks", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${userToken}`
+          },
+          body: JSON.stringify({ title: "Hook Test Task", authorId: userId })
+        })
+      );
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      
+      // Verification: title should have "- AutoFormatted" appended by the hook
+      expect(data.title).toBe("Hook Test Task - AutoFormatted");
+      
+      // Verification: afterCreate side-effect tracking variable should be true
+      expect(sideEffectHookTriggered).toBe(true);
+      
+      createdTaskId = data.id;
+    });
+  });
+
+  // ---------------------------------------------------------
+  // LAYER 6: ACCESS RULES
+  // ---------------------------------------------------------
+  describe("Access Control Layer", () => {
+    test("Should allow update for regular user", async () => {
+      const response = await server.fetch(
+        new Request(`http://localhost/api/tasks/${createdTaskId}`, {
+          method: "PATCH",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${userToken}`
+          },
+          body: JSON.stringify({ completed: true })
+        })
+      );
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.completed).toBe(true);
+    });
+
+    test("Should register hacker user and deny update", async () => {
+      // Register Hacker
+      const registerRes = await server.fetch(
+        new Request("http://localhost/api/users/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "hacker@example.com", password: "HackerPassword123" })
+        })
+      );
+      expect(registerRes.status).toBe(201);
+      const hackerData = await registerRes.json();
+      secondUserToken = hackerData.accessToken;
+
+      // Attempt to update task with Hacker token
+      const response = await server.fetch(
+        new Request(`http://localhost/api/tasks/${createdTaskId}`, {
+          method: "PATCH",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${secondUserToken}`
+          },
+          body: JSON.stringify({ completed: false })
+        })
+      );
+      
+      // Verification: Should be 500 or 403 based on runtime checkAccess throw
+      expect(response.status).toBeGreaterThanOrEqual(400); 
+    });
+  });
+
+  // ---------------------------------------------------------
+  // LAYER 7: BACKGROUND WORKERS
+  // ---------------------------------------------------------
+  describe("Background Workers Layer", () => {
+    test("Should enqueue and process a job successfully", async () => {
+      const qm = RadiantQueueManager.getInstance();
+      await qm.addJob("e2e-worker", "test-job-1", { testPayload: "hello-bullmq" });
+      
+      // Wait for BullMQ to pick up the job and execute the handler
+      await new Promise(r => setTimeout(r, 500));
+      
+      expect(workerJobResult).not.toBeNull();
+      expect(workerJobResult.name).toBe("test-job-1");
+      expect(workerJobResult.data.testPayload).toBe("hello-bullmq");
+    });
+  });
+
+  // ---------------------------------------------------------
+  // LAYER 8: CRON SCHEDULER
+  // ---------------------------------------------------------
+  describe("Cron Scheduler Layer", () => {
+    test("Should trigger cron programmatically via BullMQ", async () => {
+      const qm = RadiantQueueManager.getInstance();
+      
+      // Manually trigger the cron worker by enqueuing a job to the radiant_cron queue
+      await qm.addJob("radiant_cron", "e2e-cron", {});
+      
+      // Wait for execution
+      await new Promise(r => setTimeout(r, 500));
+
+      expect(cronFiredCount).toBe(1);
+    });
+  });
+
 });

@@ -745,9 +745,17 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         if (rateLimitResponse) return rateLimitResponse;
 
         // 2. Process Request
-        const ctx = await this.getContext(req); 
-        const res = await this.router.handle(req, undefined, ctx.user, this); 
-        return res || new Response("Not found", { status: 404 }); 
+        try {
+          const ctx = await this.getContext(req); 
+          const res = await this.router.handle(req, undefined, ctx.user, this); 
+          return res || new Response("Not found", { status: 404 }); 
+        } catch (err: any) {
+          if (err.message?.includes("Unauthorized")) {
+             return new Response(JSON.stringify({ error: err.message }), { status: 403, headers: { "Content-Type": "application/json" } });
+          }
+          console.error("[RadiantRuntime Error]", err);
+          return new Response(JSON.stringify({ error: err.message || "Internal Server Error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+        }
       },
       websocket: RadiantWebsocket.handlers(),
     });
