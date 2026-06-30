@@ -103,6 +103,17 @@
         "typescript": "^6.0.3",
       },
     },
+    "plugins/ts/s3": {
+      "name": "@codesordinatestudio/radiant-plugin-s3",
+      "version": "0.13.0",
+      "dependencies": {
+        "@codesordinatestudio/radiant-bun": "workspace:*",
+      },
+      "devDependencies": {
+        "tsup": "^8.5.1",
+        "typescript": "^6.0.3",
+      },
+    },
     "plugins/ts/sqlite": {
       "name": "@codesordinatestudio/radiant-plugin-sqlite",
       "version": "0.1.0",
@@ -164,6 +175,8 @@
     "@codesordinatestudio/radiant-plugin-postgres": ["@codesordinatestudio/radiant-plugin-postgres@workspace:plugins/ts/postgres"],
 
     "@codesordinatestudio/radiant-plugin-redis": ["@codesordinatestudio/radiant-plugin-redis@workspace:plugins/ts/redis"],
+
+    "@codesordinatestudio/radiant-plugin-s3": ["@codesordinatestudio/radiant-plugin-s3@workspace:plugins/ts/s3"],
 
     "@codesordinatestudio/radiant-plugin-sqlite": ["@codesordinatestudio/radiant-plugin-sqlite@workspace:plugins/ts/sqlite"],
 
@@ -758,6 +771,8 @@
     "@codesordinatestudio/radiant-plugin-postgres/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@codesordinatestudio/radiant-plugin-redis/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
+
+    "@codesordinatestudio/radiant-plugin-s3/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "@codesordinatestudio/radiant-plugin-surrealdb/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 

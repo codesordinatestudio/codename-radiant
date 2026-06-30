@@ -7,6 +7,9 @@ import { MemoryCacheStore } from "../core/cache";
 import { LocalStorageProvider } from "../core/storage";
 import { RadiantWebsocket } from "./websocket";
 import { RadiantSSE } from "./sse";
+import { setupMonitoring } from "../monitoring";
+import { RateLimiter } from "../security/rate-limiter";
+import { RadiantKV } from "../utils/kv";
 
 import { JWTAuthenticator, type JWTConfig } from "../security/auth";
 
@@ -18,9 +21,10 @@ export interface RadiantConfig {
 }
 
 export class RadiantRuntime<TCollections extends Record<string, any> = Record<string, any>> {
-  private schema: RadiantAST;
+  public schema: RadiantAST;
   public adapter: RadiantAdapter;
   public router: RadiantRouter<TCollections>;
+  public rateLimiter: RateLimiter;
   public storage: StorageProvider;
   public cache: CacheStore;
   public plugins: RadiantPlugin[];
@@ -38,6 +42,10 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     this.cache = config.cache || new MemoryCacheStore();
     this.plugins = config.plugins || [];
     this.router = new RadiantRouter();
+    this.rateLimiter = new RateLimiter(this.schema, new RadiantKV());
+    
+    // Setup monitoring endpoints
+    setupMonitoring(this);
 
     if (this.schema.security?.auth?.strategies?.includes("jwt")) {
       const secret = process.env.JWT_SECRET;
@@ -600,7 +608,16 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
 
     const server = Bun.serve({
       port: options.port ?? 3000,
-      fetch: async (req) => { const ctx = await this.getContext(req); const res = await this.router.handle(req, undefined, ctx.user, this); return res || new Response("Not found", { status: 404 }); },
+      fetch: async (req) => { 
+        // 1. Rate Limit Check
+        const rateLimitResponse = await this.rateLimiter.check(req);
+        if (rateLimitResponse) return rateLimitResponse;
+
+        // 2. Process Request
+        const ctx = await this.getContext(req); 
+        const res = await this.router.handle(req, undefined, ctx.user, this); 
+        return res || new Response("Not found", { status: 404 }); 
+      },
       websocket: RadiantWebsocket.handlers(),
     });
 

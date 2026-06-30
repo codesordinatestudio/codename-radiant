@@ -1,5 +1,5 @@
 {
-  "name": "@codesordinatestudio/lucent-plugin-redis-db",
+  "name": "@codesordinatestudio/radiant-plugin-s3",
   "version": "0.13.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,7 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@codesordinatestudio/lucent-core": "workspace:*"
+    "@codesordinatestudio/radiant-bun": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

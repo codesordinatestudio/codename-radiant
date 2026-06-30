@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@codesordinatestudio/radiant-bun": "workspace:*",
-    "mongodb": "^6.16.0"
+    "mongodb": "^7.4.0"
   },
   "devDependencies": {
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.1-rc"
   },
   "sideEffects": false
 }
