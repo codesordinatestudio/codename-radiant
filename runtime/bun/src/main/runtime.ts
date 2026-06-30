@@ -633,11 +633,16 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     const currentSchema = await this.adapter.getCurrentSchema();
     const existingTables = new Set(currentSchema.tables);
     const configuredTables = new Set(this.schema.collections.map(c => c.slug));
-    const dropOrphan = this.schema.migrate?.dropOrphan === true;
+
+    const isProduction = process.env.NODE_ENV === "production";
+    // dropOrphan is dev-only. In production, auto-sync is always additive
+    // (creates tables/columns, never drops). Use `radiant db:sync --force`
+    // to apply destructive changes in production.
+    const dropOrphan = !isProduction && this.schema.migrate?.dropOrphan === true;
 
     // Detect orphaned tables
     for (const existingTable of existingTables) {
-      if (existingTable !== 'radiant_migrations' && !configuredTables.has(existingTable)) {
+      if (existingTable !== 'radiant_migrations' && existingTable !== 'radiant_refresh_tokens' && !configuredTables.has(existingTable)) {
         if (dropOrphan) {
           if (this.adapter.dropTableDDL) {
             console.log(`[Radiant Auto-Sync] Dropping orphaned table: ${existingTable}`);

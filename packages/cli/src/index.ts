@@ -54,4 +54,13 @@ program.command('lsp')
     await import('./lsp/server');
   });
 
+program.command('db:sync')
+  .description('Sync the database schema against config.radiant. Use --force to apply destructive changes (drop orphaned tables/columns).')
+  .option('-d, --dir <path>', 'Path to the radiant directory')
+  .option('--force', 'Apply destructive changes (drop orphaned tables/columns)')
+  .action(async (options) => {
+    const { dbSyncCommand } = await import('./db-sync');
+    await dbSyncCommand(options);
+  });
+
 program.parse(process.argv);
