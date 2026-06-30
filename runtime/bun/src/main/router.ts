@@ -116,6 +116,8 @@ export interface RadiantNativeRouteOptions<TState = unknown> {
   monitoring?: any;
   security?: any;
   requestId?: { enabled?: boolean };
+  /** Optional rate limiter checked before the route handler runs. */
+  rateLimiter?: { check: (request: Request) => Promise<Response | null> | Response | null };
 }
 
 function normalizePath(path: string): string {
@@ -569,6 +571,20 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
         const startedAt = hasMonitoring ? performance.now() : 0;
         const pathname = hasMonitoring ? getPathname(request.url) : "";
 
+        // Rate limiting runs before anything else. The rateLimiter will return
+        // a synchronous null for requests that don't need rate limiting (e.g., GETs),
+        // avoiding any Promise allocation overhead.
+        if (options.rateLimiter) {
+          const rateResult = options.rateLimiter.check(request);
+          if (rateResult instanceof Promise) {
+            return rateResult.then((rateRes) => rateRes ?? dispatch());
+          }
+          if (rateResult) return withHeaders(rateResult, requestResponseHeaders(request, undefined));
+        }
+
+        return dispatch();
+
+        function dispatch(): Response | Promise<Response | undefined> | undefined {
         try {
           const runRequest = (requestId: string | undefined): Response | Promise<Response | undefined> | undefined => {
             const requestHeaders: Record<string, string> | undefined = requestId ? { "X-Request-ID": requestId } : undefined;
@@ -811,6 +827,7 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
           }
           return withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders));
         }
+        } // end dispatch
       };
     };
 

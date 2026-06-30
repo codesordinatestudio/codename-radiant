@@ -5,10 +5,12 @@ import { error } from "../core/response";
 export class RateLimiter {
   private kv: RadiantKV;
   private schema: RadiantAST;
+  private hasRateLimit: boolean;
 
   constructor(schema: RadiantAST, kv: RadiantKV) {
     this.kv = kv;
     this.schema = schema;
+    this.hasRateLimit = !!schema.security?.rateLimit;
   }
 
   private parseWindow(windowStr?: string): number {
@@ -27,14 +29,25 @@ export class RateLimiter {
     return windowSec;
   }
 
-  async check(request: Request): Promise<Response | null> {
-    const rateLimitConfig = this.schema.security?.rateLimit;
-    if (!rateLimitConfig) return null;
+  /**
+   * Extract the pathname from a URL string without allocating a URL object.
+   */
+  private getPathname(url: string): string {
+    const protocolIndex = url.indexOf("://");
+    const pathStart = protocolIndex === -1 ? 0 : url.indexOf("/", protocolIndex + 3);
+    if (pathStart === -1) return "/";
+    const queryStart = url.indexOf("?", pathStart);
+    return queryStart === -1 ? url.slice(pathStart) : url.slice(pathStart, queryStart);
+  }
 
-    const url = new URL(request.url);
+  check(request: Request): Promise<Response | null> | Response | null {
+    if (!this.hasRateLimit) return null;
+
+    const rateLimitConfig = this.schema.security!.rateLimit!;
     const method = request.method;
-    const isLogin = method === "POST" && (url.pathname.endsWith("/login") || url.pathname.endsWith("/register"));
-    const isWrite = ["POST", "PUT", "PATCH", "DELETE"].includes(method) && !isLogin;
+    const pathname = this.getPathname(request.url);
+    const isLogin = method === "POST" && (pathname.endsWith("/login") || pathname.endsWith("/register"));
+    const isWrite = (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE") && !isLogin;
 
     let config: { max?: number; window?: string } | undefined;
     let type = "";
@@ -49,6 +62,14 @@ export class RateLimiter {
 
     if (!config || !config.max) return null;
 
+    // Allow env override of the max threshold (e.g. for benchmarks or
+    // high-throughpute deployments). Set RATE_LIMIT_MAX to raise the cap
+    // without disabling rate limiting entirely.
+    const envMax = Number(globalThis.process?.env?.RATE_LIMIT_MAX);
+    if (!Number.isNaN(envMax) && envMax > 0) {
+      config = { ...config, max: Math.max(config.max, envMax) };
+    }
+
     const windowSec = this.parseWindow(config.window);
     
     // Get client IP
@@ -57,9 +78,13 @@ export class RateLimiter {
                      "unknown-ip";
     
     const key = `ratelimit:${type}:${clientIP}`;
+    return this._doCheckAsync(key, config.max!, windowSec);
+  }
+
+  private async _doCheckAsync(key: string, max: number, windowSec: number): Promise<Response | null> {
     const current = await this.kv.get<number>(key) || 0;
 
-    if (current >= config.max) {
+    if (current >= max) {
       return error("Too Many Requests", 429);
     }
 

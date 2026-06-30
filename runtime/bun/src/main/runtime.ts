@@ -58,7 +58,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     this.streamStore = config.streamStore || new MemoryStreamStore();
     this.plugins = config.plugins || [];
     this.router = new RadiantRouter();
-    this.rateLimiter = new RateLimiter(this.schema, new RadiantKV());
+    this.rateLimiter = new RateLimiter(this.schema, new RadiantKV({ driver: "memory" }));
     if (this.schema.email || config.email) {
       this.mailer = createMailer({
         ...this.schema.email,
@@ -785,9 +785,62 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     await this.syncDatabaseSchema();
     await this.buildRoutes();
 
+    // Use Bun's native route matching (radix tree in C++) instead of the
+    // linear-scan router.handle(). The fetch handler is only called for
+    // unmatched routes (404 fallback) and as a wrapper for rate limiting
+    // + plugin hooks on API routes.
+    const nativeRoutes = this.router.toNativeRoutes({
+      radiant: this as any,
+      monitoring: this.monitoring,
+      requestId: this.schema.monitoring?.requestId,
+      cors: this.schema.security?.cors,
+      rateLimiter: this.rateLimiter,
+      headers: this.schema.security?.headers?.enabled
+        ? { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "X-XSS-Protection": "1; mode=block" }
+        : undefined,
+    });
+
+    const hasPlugins = this.plugins.length > 0;
+
     const server = Bun.serve({
       port: options.port ?? 3000,
-      fetch: async (req) => this.fetch(req),
+      routes: nativeRoutes,
+      fetch: async (req) => {
+        // Rate limiting for unmatched routes (matched routes already rate-limit
+        // via the native handler's rateLimiter option).
+        const rateLimitResponse = await this.rateLimiter.check(req);
+        if (rateLimitResponse) return rateLimitResponse;
+
+        if (!hasPlugins) return new Response("Not found", { status: 404 });
+
+        let ctx: RadiantRequestContext | undefined;
+        try {
+          ctx = await this.getContext(req);
+          for (const plugin of this.plugins) {
+            if (plugin.beforeRequest) await plugin.beforeRequest(ctx);
+          }
+
+          let res = await this.router.handle(req, undefined, ctx.user, this);
+          res = res || new Response("Not found", { status: 404 });
+
+          for (const plugin of this.plugins) {
+            if (plugin.afterRequest) await plugin.afterRequest(ctx, res);
+          }
+          return res;
+        } catch (err: any) {
+          if (!ctx) ctx = { request: req, user: null, radiant: this } as RadiantRequestContext;
+          for (const plugin of this.plugins) {
+            if (plugin.onError) {
+              const customRes = await plugin.onError(ctx, err);
+              if (customRes instanceof Response) return customRes;
+            }
+          }
+          if (!(err instanceof RadiantError)) {
+            log.error({ err }, "Unhandled error in request pipeline");
+          }
+          return toErrorResponse(err, req, this.adapter);
+        }
+      },
       websocket: RadiantWebsocket.handlers(),
     });
 

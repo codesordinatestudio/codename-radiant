@@ -1,9 +1,9 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
-import autocannon, { type Result } from "autocannon";
 import numeral from "numeral";
+import { fileURLToPath } from "node:url";
+import autocannon, { type Result } from "autocannon";
+import { spawn, type ChildProcess } from "node:child_process";
 
 interface Scenario {
   title: string;
@@ -65,13 +65,13 @@ const allTargets: Target[] = [
     source: path.join(dirname, "elysia-server.ts"),
     binary: path.join(os.tmpdir(), "radiant-bench-elysia"),
     runtime: "bun",
-  }
+  },
 ];
 const targets = allTargets.filter((target) => selectedTargets.has(target.name));
 
 async function compileTarget(target: Target): Promise<void> {
   console.log(`[bench] compiling ${target.name}...`);
-  
+
   if (target.name === "radiant" || target.name === "elysia") {
     await Bun.$`bun build ${target.source} --target bun --outfile ${target.binary}.js`.quiet();
     target.binary = `${target.binary}.js`;
@@ -86,14 +86,26 @@ function startTarget(target: Target): ChildProcess {
     return spawn("bun", ["run", target.binary], {
       cwd: dirname,
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, BENCH_PORT: String(target.port), PORT: String(target.port), NODE_ENV: "production" },
+      env: {
+        ...process.env,
+        BENCH_PORT: String(target.port),
+        PORT: String(target.port),
+        NODE_ENV: "production",
+        RATE_LIMIT_MAX: "999999999",
+      },
     });
   }
 
   return spawn("bun", ["run", target.binary], {
     cwd: dirname,
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, BENCH_PORT: String(target.port), PORT: String(target.port), NODE_ENV: "production" },
+    env: {
+      ...process.env,
+      BENCH_PORT: String(target.port),
+      PORT: String(target.port),
+      NODE_ENV: "production",
+      RATE_LIMIT_MAX: "999999999",
+    },
   });
 }
 

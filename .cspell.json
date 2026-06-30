@@ -1,8 +1,11 @@
 {
     "words": [
+        "autocannon",
         "CONTAINSALL",
         "CONTAINSANY",
         "CONTAINSNOT",
+        "dotenv",
+        "eslintcache",
         "mailpit",
         "surrealdb"
     ]

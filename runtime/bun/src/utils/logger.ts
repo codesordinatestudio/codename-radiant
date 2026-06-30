@@ -27,7 +27,7 @@ let kvStore: RadiantKV | null = null;
 // Create error KV store on demand
 function getErrorKV(): RadiantKV {
   if (!kvStore) {
-    kvStore = new RadiantKV({ path: "./data/radiant-error-kv.sqlite" });
+    kvStore = new RadiantKV({ sqlite: { path: "./data/radiant-error-kv.sqlite" } });
   }
   return kvStore;
 }

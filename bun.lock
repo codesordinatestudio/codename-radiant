@@ -17,12 +17,14 @@
       "name": "radiant-bench",
       "version": "1.0.0",
       "dependencies": {
+        "@codesordinatestudio/radiant-bun": "link:@codesordinatestudio/radiant-bun",
         "@sinclair/typebox": "^0.34.49",
         "autocannon": "^7.15.0",
         "elysia": "^1.4.28",
         "numeral": "^2.0.6",
       },
       "devDependencies": {
+        "@types/autocannon": "^7.12.7",
         "@types/numeral": "^2.0.5",
         "bun-types": "^1.2.0",
       },
@@ -381,6 +383,8 @@
     "@turbo/windows-64": ["@turbo/windows-64@2.10.2", "", { "os": "win32", "cpu": "x64" }, "sha512-SsNhM7Ho7EpAdwtrJKBOic9Hso23vu6Dp0gAfLOvUFjPzurr/sGQlXZEvr6z89ne4RDOypTwz5CBDrixpMKtXw=="],
 
     "@turbo/windows-arm64": ["@turbo/windows-arm64@2.10.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-Gf+S7ICAdimT/n02bOuVWKvhHnct/HYjZg3oBNIz5hZ9ZyWHbQim9J3P5Qip8WpX0ksxF7eaBVziJCuLnjhqDg=="],
+
+    "@types/autocannon": ["@types/autocannon@7.12.7", "", { "dependencies": { "@types/node": "*" } }, "sha512-Pd4nPf7wRpacULa6D/EC9x3CwzFQXwA0z5WFuik/fvJjW44V3WzBTM3jtt8nSBoflUNgswPiMCtgrr1bwnAcMg=="],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
@@ -839,6 +843,8 @@
     "@codesordinatestudio/radiant-plugin-resend/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "@codesordinatestudio/radiant-plugin-s3/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
+
+    "radiant-bench/@codesordinatestudio/radiant-bun": ["@codesordinatestudio/radiant-bun@link:@codesordinatestudio/radiant-bun", {}],
 
     "sucrase/commander": ["commander@4.1.1", "", {}, "sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA=="],
 
