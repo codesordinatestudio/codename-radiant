@@ -1,15 +1,19 @@
 @import "tailwindcss";
+@plugin "daisyui";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  
+  --color-warm-bg: #faf9f6;
+  --color-warm-surface: #f2efe9;
+  --color-text-main: #1a1a1a;
+  --color-callout-bg: #eaf3ee;
+  --color-callout-text: #1d3d2c;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
-
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+  @apply bg-warm-bg text-text-main;
+  min-height: 100vh;
 }
