@@ -50,6 +50,8 @@ export interface RadiantAST {
     audit?: { enabled?: boolean; };
   };
   monitoring?: {
+    enabled?: boolean;
+    apiKey?: string;
     healthCheck?: {
       enabled?: boolean;
       path?: string;

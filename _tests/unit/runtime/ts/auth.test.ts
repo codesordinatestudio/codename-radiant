@@ -1,5 +1,6 @@
 import { test, expect, describe, beforeEach, afterEach, setSystemTime } from "bun:test";
 import { JWTAuthenticator } from "../../../../runtime/bun/src/security/auth";
+import { InMemoryTokenStore, AdapterTokenStore, type TokenStore } from "../../../../runtime/bun/src/security/token-store";
 import type { RadiantAdapter } from "../../../../runtime/bun/src/core";
 import { jwtVerify } from "jose";
 
@@ -116,13 +117,124 @@ describe("JWTAuthenticator", () => {
     const now = Date.now();
     setSystemTime(new Date(now + 8 * 24 * 60 * 60 * 1000)); // +8 days
 
-    // Call internal purge method
-    (authEngine as any).purgeExpiredTokens();
+    // Call internal purge method via the token store
+    await (authEngine as any).tokenStore.purgeExpired();
 
     // The refresh token should no longer be in the store
     const failedRefresh = await authEngine.refreshTokenPair(tokens.refreshToken);
     expect(failedRefresh).toBeNull();
 
     setSystemTime(); // reset clock
+  });
+
+  test("revokeAllForUser revokes all refresh tokens for a user", async () => {
+    const user = { id: "user-to-revoke", email: "revoke@test.com", role: "user" };
+
+    // Generate multiple token pairs for the same user (simulating multiple devices)
+    const tokens1 = await authEngine.generateTokenPair(user, "users");
+    const tokens2 = await authEngine.generateTokenPair(user, "users");
+
+    // Both tokens should be valid
+    expect(tokens1.refreshToken).toBeDefined();
+    expect(tokens2.refreshToken).toBeDefined();
+
+    // Revoke all tokens for this user
+    await authEngine.revokeAllForUser("user-to-revoke");
+
+    // Both refresh tokens should now be rejected
+    const failedRefresh1 = await authEngine.refreshTokenPair(tokens1.refreshToken);
+    const failedRefresh2 = await authEngine.refreshTokenPair(tokens2.refreshToken);
+    expect(failedRefresh1).toBeNull();
+    expect(failedRefresh2).toBeNull();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────
+// AdapterTokenStore tests
+// ──────────────────────────────────────────────────────────────
+
+describe("AdapterTokenStore", () => {
+  function createMockAdapter(): RadiantAdapter {
+    const store = new Map<string, Record<string, unknown>>();
+
+    return {
+      adapterType: "mock",
+      connect: async () => {},
+      create: async (_col: string, data: Record<string, unknown>) => {
+        const id = data.id as string;
+        store.set(id, { ...data });
+        return data;
+      },
+      find: async (col: string, query: any) => {
+        if (col !== "radiant_refresh_tokens") return { docs: [], total: 0 };
+        const docs: Record<string, unknown>[] = [];
+        for (const [, doc] of store) {
+          if (query?.where?.userId?.eq && doc.userId !== query.where.userId.eq) continue;
+          if (query?.where?.expiresAt?.lt && (doc.expiresAt as number) >= query.where.expiresAt.lt) continue;
+          docs.push(doc);
+        }
+        return { docs, total: docs.length, limit: 1000, page: 1, totalPages: 1, hasNextPage: false, hasPrevPage: false };
+      },
+      findById: async (_col: string, id: string) => store.get(id) ?? null,
+      update: async (_col: string, id: string, data: Record<string, unknown>) => {
+        const existing = store.get(id);
+        if (existing) store.set(id, { ...existing, ...data });
+        return store.get(id) ?? data;
+      },
+      delete: async (_col: string, id: string) => { store.delete(id); },
+    } as unknown as RadiantAdapter;
+  }
+
+  test("store + lookup round-trips a token entry", async () => {
+    const adapter = createMockAdapter();
+    const tokenStore = new AdapterTokenStore(adapter);
+
+    const entry = { userId: "u1", collection: "users", role: "admin", expiresAt: Date.now() + 100000 };
+    await tokenStore.store("hash123", entry);
+
+    const looked = await tokenStore.lookup("hash123");
+    expect(looked).not.toBeNull();
+    expect(looked?.userId).toBe("u1");
+    expect(looked?.collection).toBe("users");
+  });
+
+  test("revoke deletes a token entry", async () => {
+    const adapter = createMockAdapter();
+    const tokenStore = new AdapterTokenStore(adapter);
+
+    await tokenStore.store("hash456", { userId: "u2", collection: "users", expiresAt: Date.now() + 100000 });
+    await tokenStore.revoke("hash456");
+
+    const looked = await tokenStore.lookup("hash456");
+    expect(looked).toBeNull();
+  });
+
+  test("revokeAllForUser removes all tokens for a user", async () => {
+    const adapter = createMockAdapter();
+    const tokenStore = new AdapterTokenStore(adapter);
+
+    await tokenStore.store("h1", { userId: "userX", collection: "users", expiresAt: Date.now() + 100000 });
+    await tokenStore.store("h2", { userId: "userX", collection: "users", expiresAt: Date.now() + 100000 });
+    await tokenStore.store("h3", { userId: "userY", collection: "users", expiresAt: Date.now() + 100000 });
+
+    await tokenStore.revokeAllForUser("userX");
+
+    expect(await tokenStore.lookup("h1")).toBeNull();
+    expect(await tokenStore.lookup("h2")).toBeNull();
+    expect(await tokenStore.lookup("h3")).not.toBeNull();
+  });
+
+  test("purgeExpired removes only expired tokens", async () => {
+    const adapter = createMockAdapter();
+    const tokenStore = new AdapterTokenStore(adapter);
+
+    const now = Date.now();
+    await tokenStore.store("expired", { userId: "u", collection: "users", expiresAt: now - 1000 });
+    await tokenStore.store("valid", { userId: "u", collection: "users", expiresAt: now + 100000 });
+
+    await tokenStore.purgeExpired();
+
+    expect(await tokenStore.lookup("expired")).toBeNull();
+    expect(await tokenStore.lookup("valid")).not.toBeNull();
   });
 });

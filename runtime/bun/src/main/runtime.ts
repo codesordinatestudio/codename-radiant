@@ -1,5 +1,6 @@
 import type { RadiantAST, RadiantAdapter, StorageProvider, CacheStore, RadiantPlugin } from "../core";
 import { type DurableStreamStore, MemoryStreamStore } from "../core/stream";
+import { validateCreate, validateUpdate } from "../core/validator";
 import type { AccessRules, AuthUser, RadiantRequestContext } from "./access";
 import type { Hooks } from "./hooks";
 import { RadiantRouter } from "./router";
@@ -9,12 +10,13 @@ import { LocalStorageProvider } from "../core/storage";
 import { CronManager } from "./cron";
 import { RadiantWebsocket } from "./websocket";
 import { RadiantSSE } from "./sse";
-import { setupMonitoring } from "../monitoring";
+import { setupMonitoring, type RadiantMonitoringAPI } from "../monitoring";
 import { RateLimiter } from "../security/rate-limiter";
 import { RadiantKV } from "../utils/kv";
 import { createMailer, type RadiantMailer } from "../core/email";
 
 import { JWTAuthenticator, type JWTConfig } from "../security/auth";
+import { AdapterTokenStore, InMemoryTokenStore, type TokenStore } from "../security/token-store";
 
 export interface RadiantConfig {
   adapter: RadiantAdapter;
@@ -36,14 +38,15 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   public mailer?: RadiantMailer;
   public streamStore: DurableStreamStore;
   public cronManager = new CronManager();
+  public monitoring?: RadiantMonitoringAPI;
   private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks<any, any>>();
   private _access = new Map<string, AccessRules<any, any>>();
+  private _cacheKeyRegistry = new Map<string, Set<string>>();
 
   constructor(schema: RadiantAST, config: RadiantConfig) {
     this.schema = this.resolveEnvVariables(schema);
-    this.adapter = config.adapter;
     this.adapter = config.adapter;
     const prefix = this.schema.core?.api?.prefix || '/api';
     this.storage = config.storage || new LocalStorageProvider('uploads', prefix);
@@ -60,7 +63,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     }
     
     // Setup monitoring endpoints
-    setupMonitoring(this);
+    this.monitoring = setupMonitoring(this);
 
     if (this.schema.security?.auth?.strategies?.includes("jwt")) {
       const secret = process.env.JWT_SECRET;
@@ -68,11 +71,21 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         throw new Error("JWT_SECRET environment variable is required when JWT auth strategy is enabled in config.radiant.");
       }
       const jwtSettings = this.schema.security.auth.jwt || {};
-      this.authEngine = new JWTAuthenticator({
-        secret,
-        accessTokenExpiry: jwtSettings.accessTokenExpiry || "15m",
-        refreshTokenExpiry: jwtSettings.refreshTokenExpiry || "7d"
-      }, this.adapter);
+      // Use AdapterTokenStore when the adapter supports system tables (SQL adapters,
+      // MongoDB, SurrealDB). Fall back to InMemoryTokenStore for Redis-db which
+      // has no system table DDL.
+      const tokenStore: TokenStore = this.adapter.getSystemTableStatements
+        ? new AdapterTokenStore(this.adapter)
+        : new InMemoryTokenStore();
+      this.authEngine = new JWTAuthenticator(
+        {
+          secret,
+          accessTokenExpiry: jwtSettings.accessTokenExpiry || "15m",
+          refreshTokenExpiry: jwtSettings.refreshTokenExpiry || "7d",
+        },
+        this.adapter,
+        tokenStore,
+      );
     }
   }
 
@@ -159,6 +172,15 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     if (h && h[hookName]) {
       await h[hookName]({ ...ctx, collection, data });
     }
+  }
+
+  private _registerCacheKey(collection: string, key: string): void {
+    let keys = this._cacheKeyRegistry.get(collection);
+    if (!keys) {
+      keys = new Set();
+      this._cacheKeyRegistry.set(collection, keys);
+    }
+    keys.add(key);
   }
 
   async buildRoutes() {
@@ -380,6 +402,10 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
           const hashedPassword = await Bun.password.hash(data.password, "bcrypt");
           await this.adapter.update(collection.slug, verified.userId, { password: hashedPassword });
 
+          // Invalidate all existing refresh tokens for this user so that
+          // sessions on other devices/servers are forced to re-authenticate.
+          await this.authEngine.revokeAllForUser(verified.userId);
+
           // Fetch the user to get their email
           const user = await this.adapter.findById(collection.slug, verified.userId);
           if (user && this.mailer && (user as any).email) {
@@ -405,6 +431,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         if (hasCache) {
           const cacheKey = `list:${collection.slug}:${new URL(req.url).search}`;
           await this.cache.set(cacheKey, result, Number(cacheTTL));
+          this._registerCacheKey(collection.slug, cacheKey);
         }
 
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
@@ -437,17 +464,22 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         if (hasCache) {
           const cacheKey = `doc:${collection.slug}:${params.id}`;
           await this.cache.set(cacheKey, result, Number(cacheTTL));
+          this._registerCacheKey(collection.slug, cacheKey);
         }
 
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
       });
 
-      const invalidateCache = async () => {
-        // Simple invalidation strategy: delete all list queries for this collection if a doc is changed.
-        // In a real app, this should be more granular using a redis SCAN or tracking keys.
-        // For now, we rely on the memory adapter or just flush. 
-        // We'll clear the whole cache for simplicity if any mutation happens.
-        await this.cache.del(`list:${collection.slug}`); // This is naive
+      const invalidateCache = async (specificDocId?: string) => {
+        // Targeted invalidation: delete only this collection's cache entries.
+        if (specificDocId) {
+          await this.cache.del(`doc:${collection.slug}:${specificDocId}`);
+        }
+        const keys = this._cacheKeyRegistry.get(collection.slug);
+        if (keys && keys.size > 0) {
+          await this.cache.del(...keys);
+          keys.clear();
+        }
       };
 
       const broadcastChange = (action: string, data: any) => {
@@ -472,11 +504,12 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
       this.router.post(basePath, async (ctx) => { const req = ctx.request;
         await this.checkAccess(collection.slug, "create", ctx);
         let data = await req.json();
+        data = validateCreate(collection, data);
         data = await this.runBeforeHooks(collection.slug, "Create", ctx, data);
         const result = await this.adapter.create(collection.slug, data);
         await this.runAfterHooks(collection.slug, "Create", ctx, result);
 
-        if (hasCache) await this.cache.close(); // Invalidate all (naive)
+        if (hasCache) await invalidateCache();
         if (isRealtime) broadcastChange("created", result);
 
         return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
@@ -486,14 +519,12 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
       this.router.patch(`${basePath}/:id`, async (ctx) => { const req = ctx.request; const params = ctx.params as any;
         await this.checkAccess(collection.slug, "update", ctx);
         let data = await req.json();
+        data = validateUpdate(collection, data);
         data = await this.runBeforeHooks(collection.slug, "Update", ctx, data);
         const result = await this.adapter.update(collection.slug, params.id, data);
         await this.runAfterHooks(collection.slug, "Update", ctx, result);
 
-        if (hasCache) {
-          await this.cache.del(`doc:${collection.slug}:${params.id}`);
-          await this.cache.close(); // Naive list invalidation
-        }
+        if (hasCache) await invalidateCache(params.id);
         if (isRealtime) broadcastChange("updated", result);
 
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
@@ -506,10 +537,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         await this.adapter.delete(collection.slug, params.id);
         await this.runAfterHooks(collection.slug, "Delete", ctx, { id: params.id });
 
-        if (hasCache) {
-          await this.cache.del(`doc:${collection.slug}:${params.id}`);
-          await this.cache.close(); // Naive list invalidation
-        }
+        if (hasCache) await invalidateCache(params.id);
         if (isRealtime) broadcastChange("deleted", { id: params.id });
 
         return new Response(JSON.stringify({ deleted: true }), { headers: { 'Content-Type': 'application/json' } });
@@ -677,6 +705,11 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   public async fetch(req: Request): Promise<Response> {
+    // 1. Rate Limit Check (runs before plugins — rate-limited requests
+    // should never reach plugin lifecycle hooks)
+    const rateLimitResponse = await this.rateLimiter.check(req);
+    if (rateLimitResponse) return rateLimitResponse;
+
     let ctx: RadiantRequestContext | undefined;
     try {
       ctx = await this.getContext(req);
@@ -710,7 +743,11 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         }
       }
       
-      return new Response(JSON.stringify({ error: err.message }), { status: err.status || 500 });
+      const status = err.status || (err.message?.includes("Unauthorized") ? 403 : 500);
+      return new Response(
+        JSON.stringify({ error: err.message || "Internal Server Error" }),
+        { status, headers: { "Content-Type": "application/json" } }
+      );
     }
   }
 
@@ -739,24 +776,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
 
     const server = Bun.serve({
       port: options.port ?? 3000,
-      fetch: async (req) => { 
-        // 1. Rate Limit Check
-        const rateLimitResponse = await this.rateLimiter.check(req);
-        if (rateLimitResponse) return rateLimitResponse;
-
-        // 2. Process Request
-        try {
-          const ctx = await this.getContext(req); 
-          const res = await this.router.handle(req, undefined, ctx.user, this); 
-          return res || new Response("Not found", { status: 404 }); 
-        } catch (err: any) {
-          if (err.message?.includes("Unauthorized")) {
-             return new Response(JSON.stringify({ error: err.message }), { status: 403, headers: { "Content-Type": "application/json" } });
-          }
-          console.error("[RadiantRuntime Error]", err);
-          return new Response(JSON.stringify({ error: err.message || "Internal Server Error" }), { status: 500, headers: { "Content-Type": "application/json" } });
-        }
-      },
+      fetch: async (req) => this.fetch(req),
       websocket: RadiantWebsocket.handlers(),
     });
 

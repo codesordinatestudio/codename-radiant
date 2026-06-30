@@ -19,7 +19,7 @@ const ALLOWED_CONFIG = new Set(["core", "security", "monitoring", "adminUI", "ap
 const ALLOWED_CORE = new Set(["api", "openapi", "upload"]);
 const ALLOWED_SECURITY = new Set(["auth", "cors", "rateLimit", "headers", "secrets", "audit"]);
 const ALLOWED_AUTH = new Set(["strategies", "jwt", "session", "apiKey", "passwordPolicy", "lockout"]);
-const ALLOWED_MONITORING = new Set(["healthCheck", "requestId"]);
+const ALLOWED_MONITORING = new Set(["healthCheck", "requestId", "apiKey", "enabled"]);
 const ALLOWED_COLLECTION = new Set(["auth", "fields", "realtime", "cache", "hooks", "admin"]);
 const ALLOWED_MIGRATE = new Set(["dropOrphan"]);
 

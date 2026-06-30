@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { RadiantAdapter } from "../core";
 import type { AuthUser } from "../main/access";
+import { InMemoryTokenStore, type TokenStore } from "./token-store";
 
 export interface JWTConfig {
   secret: string;
@@ -34,30 +35,16 @@ async function sha256(input: string): Promise<string> {
 export class JWTAuthenticator {
   private config: JWTConfig;
   private adapter: RadiantAdapter;
-  private refreshTokenStore: Map<
-    string,
-    {
-      userId: string;
-      collection: string;
-      role?: string;
-      expiresAt: number;
-    }
-  > = new Map();
+  private tokenStore: TokenStore;
   private cleanupTimer: ReturnType<typeof setInterval>;
 
-  constructor(config: JWTConfig, adapter: RadiantAdapter) {
+  constructor(config: JWTConfig, adapter: RadiantAdapter, tokenStore?: TokenStore) {
     this.config = config;
     this.adapter = adapter;
-    // Evict expired in-memory tokens every 5 minutes
-    this.cleanupTimer = setInterval(() => this.purgeExpiredTokens(), 5 * 60 * 1000);
+    this.tokenStore = tokenStore ?? new InMemoryTokenStore();
+    // Evict expired tokens every 5 minutes
+    this.cleanupTimer = setInterval(() => this.tokenStore.purgeExpired(), 5 * 60 * 1000);
     this.cleanupTimer.unref();
-  }
-
-  private purgeExpiredTokens(): void {
-    const now = Date.now();
-    for (const [hash, entry] of this.refreshTokenStore) {
-      if (entry.expiresAt <= now) this.refreshTokenStore.delete(hash);
-    }
   }
 
   async generateTokenPair(
@@ -89,8 +76,7 @@ export class JWTAuthenticator {
     const tokenHash = await sha256(refreshToken);
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7d
 
-    // For now, store in memory. In a DB adapter, this would go into a system table.
-    this.refreshTokenStore.set(tokenHash, { userId, collection, role, expiresAt });
+    await this.tokenStore.store(tokenHash, { userId, collection, role, expiresAt });
 
     return {
       accessToken,
@@ -109,10 +95,11 @@ export class JWTAuthenticator {
       if (payload.type !== "refresh") return null;
 
       const tokenHash = await sha256(refreshToken);
-      if (!this.refreshTokenStore.has(tokenHash)) return null;
+      const entry = await this.tokenStore.lookup(tokenHash);
+      if (!entry) return null;
 
-      // Rotate
-      this.refreshTokenStore.delete(tokenHash);
+      // Rotate: revoke old token, issue a new pair
+      await this.tokenStore.revoke(tokenHash);
 
       const user = await this.adapter.findById(payload.collection as string, payload.sub as string);
       if (!user) return null;
@@ -138,21 +125,24 @@ export class JWTAuthenticator {
 
   async revokeRefreshToken(refreshToken: string): Promise<void> {
     const tokenHash = await sha256(refreshToken);
-    this.refreshTokenStore.delete(tokenHash);
+    await this.tokenStore.revoke(tokenHash);
+  }
+
+  /**
+   * Revoke all refresh tokens for a given user (e.g. after password reset/change).
+   */
+  async revokeAllForUser(userId: string): Promise<void> {
+    await this.tokenStore.revokeAllForUser(userId);
   }
 
   async generatePasswordResetToken(userId: string, collection: string): Promise<string> {
     const secretKey = new TextEncoder().encode(this.config.secret);
     
-    let resetBuilder = new SignJWT({
-      sub: userId,
-      collection,
-      type: "reset",
-    })
+    let resetBuilder = new SignJWT({ sub: userId, collection, type: "reset" })
       .setProtectedHeader({ alg: "HS256" })
       .setJti(generateId())
       .setExpirationTime("1h");
-      
+    
     return resetBuilder.sign(secretKey);
   }
 

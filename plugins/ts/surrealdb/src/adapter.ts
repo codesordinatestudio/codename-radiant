@@ -23,7 +23,10 @@ interface TableDefinition {
 }
 
 function generateSystemTablesSurreal(): string[] {
-  return ["DEFINE TABLE _radiant_migrations SCHEMALESS;"];
+  return [
+    "DEFINE TABLE _radiant_migrations SCHEMALESS;",
+    "DEFINE TABLE radiant_refresh_tokens SCHEMALESS;",
+  ];
 }
 
 function generateCreateTableSurreal(table: TableDefinition): string {

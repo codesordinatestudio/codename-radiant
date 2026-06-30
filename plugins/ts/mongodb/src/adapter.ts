@@ -148,7 +148,7 @@ export class MongoDBAdapter implements RadiantAdapter {
   }
 
   getSystemTableStatements(): string[] {
-    return ["_radiant_migrations"].map((collection) => this.createTableDDL(buildTable(collection)));
+    return ["_radiant_migrations", "radiant_refresh_tokens"].map((collection) => this.createTableDDL(buildTable(collection)));
   }
 
   async getCurrentSchema(): Promise<{ tables: string[]; columns: Record<string, string[]> }> {

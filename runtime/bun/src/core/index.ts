@@ -7,3 +7,4 @@ export * from './cache';
 export * from './openapi';
 export * from './email';
 export * from "./stream";
+export * from './validator';

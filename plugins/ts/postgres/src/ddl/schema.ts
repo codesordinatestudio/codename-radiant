@@ -169,5 +169,18 @@ export function generateSystemTables(): string[] {
   description TEXT
 );`);
 
+  statements.push(`CREATE TABLE IF NOT EXISTS radiant_refresh_tokens (
+  id TEXT PRIMARY KEY,
+  "tokenHash" TEXT NOT NULL UNIQUE,
+  "userId" TEXT NOT NULL,
+  collection TEXT NOT NULL,
+  role TEXT,
+  "expiresAt" BIGINT NOT NULL,
+  "createdAt" TIMESTAMPTZ DEFAULT now(),
+  "updatedAt" TIMESTAMPTZ DEFAULT now()
+);`);
+
+  statements.push(`CREATE INDEX IF NOT EXISTS radiant_refresh_tokens_user_idx ON radiant_refresh_tokens("userId");`);
+
   return statements;
 }

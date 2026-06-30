@@ -385,11 +385,8 @@ describe('RadiantRuntime', () => {
       });
 
       const res = await runtime.fetch(new Request('http://localhost/api/posts'));
-      // Expect 500 error since we throw an Error in checkAccess, handled by router (Bun's default is 500 or router handles it)
-      // Actually RadiantRouter handles async throwing? 
-      // If it's uncaught, Bun returns 500. Let's see what it returns.
-      // Wait, RadiantRouter currently doesn't wrap inside try/catch so Bun catches and returns 500.
-      expect(res.status).toBe(500);
+      // Access denial throws "Unauthorized to read on posts" which maps to 403
+      expect(res.status).toBe(403);
     });
 
     test('Hooks intercept and modify payload', async () => {
