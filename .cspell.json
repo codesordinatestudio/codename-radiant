@@ -4,9 +4,11 @@
         "CONTAINSALL",
         "CONTAINSANY",
         "CONTAINSNOT",
+        "DBSIZE",
         "dotenv",
         "eslintcache",
         "mailpit",
+        "setex",
         "surrealdb"
     ]
 }
