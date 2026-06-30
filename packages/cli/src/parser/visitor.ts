@@ -1,5 +1,5 @@
-import { parserInstance } from './parser';
-import { IToken } from 'chevrotain';
+import { parserInstance } from "./parser";
+import { type IToken } from "chevrotain";
 
 const BaseRadiantVisitor = parserInstance.getBaseCstVisitorConstructor();
 
@@ -22,34 +22,32 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     if (ctx.globalBlock) {
       blocks.push(...ctx.globalBlock.map((b: any) => this.visit(b)));
     }
-    return { type: 'RadiantFile', blocks };
+    return { type: "RadiantFile", blocks };
   }
 
   configBlock(ctx: any) {
     return {
-      type: 'config',
+      type: "config",
       token: ctx.Config[0],
-      body: this.visit(ctx.objectBody[0])
+      body: this.visit(ctx.objectBody[0]),
     };
   }
 
-
-
   collectionBlock(ctx: any) {
     return {
-      type: 'collection',
+      type: "collection",
       name: ctx.Identifier[0].image,
       nameToken: ctx.Identifier[0],
-      body: this.visit(ctx.objectBody[0])
+      body: this.visit(ctx.objectBody[0]),
     };
   }
 
   globalBlock(ctx: any) {
     return {
-      type: 'global',
+      type: "global",
       name: ctx.Identifier[0].image,
       nameToken: ctx.Identifier[0],
-      body: this.visit(ctx.objectBody[0])
+      body: this.visit(ctx.objectBody[0]),
     };
   }
 
@@ -80,12 +78,12 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     const isArray = ctx.LSquare !== undefined;
     const decorators = ctx.decorator ? ctx.decorator.map((d: any) => this.visit(d)) : [];
     return {
-      type: 'property',
+      type: "property",
       name,
       nameToken,
       value,
       isArray,
-      decorators
+      decorators,
     };
   }
 
@@ -99,7 +97,7 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     }
     if (ctx.True) return true;
     if (ctx.False) return false;
-    
+
     if (ctx.functionOrIdentifier) {
       return this.visit(ctx.functionOrIdentifier[0]);
     }
@@ -120,20 +118,20 @@ export class RadiantVisitor extends BaseRadiantVisitor {
       if (ctx.value) {
         args = ctx.value.map((v: any) => this.visit(v));
       }
-      return { type: 'function', name, args, token };
+      return { type: "function", name, args, token };
     }
-    return { type: 'identifier', name, token };
+    return { type: "identifier", name, token };
   }
 
   arrayLiteral(ctx: any) {
-    if (!ctx.value) return { type: 'array', elements: [] };
+    if (!ctx.value) return { type: "array", elements: [] };
     const elements = ctx.value.map((v: any) => this.visit(v));
-    return { type: 'array', elements };
+    return { type: "array", elements };
   }
 
   objectLiteral(ctx: any) {
     const props = this.visit(ctx.objectBody[0]);
-    return { type: 'object', properties: props };
+    return { type: "object", properties: props };
   }
 
   decorator(ctx: any) {
@@ -142,7 +140,7 @@ export class RadiantVisitor extends BaseRadiantVisitor {
     if (ctx.value) {
       args = ctx.value.map((v: any) => this.visit(v));
     }
-    return { type: 'decorator', name, args };
+    return { type: "decorator", name, args };
   }
 }
 

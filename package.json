@@ -16,6 +16,7 @@
     "link:local": "bun test && bun run scripts/link-all.ts"
   },
   "devDependencies": {
+    "@sinclair/typebox": "^0.34.49",
     "@types/bun": "latest",
     "@types/node": "^26.0.1",
     "jose": "^6.2.3",

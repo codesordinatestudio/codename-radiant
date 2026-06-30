@@ -31,7 +31,13 @@
         "scopeName": "source.radiant",
         "path": "./syntaxes/radiant.tmLanguage.json"
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "[radiant]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "radiant.vscode-radiant"
+      }
+    }
   },
   "scripts": {
     "build": "bun build ./src/extension.ts --outdir ./dist --target node --external vscode && bun build ../cli/src/lsp/server.ts --outfile ./dist/server.js --target node",
