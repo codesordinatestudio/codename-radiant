@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="19" assertions="58" failures="0" skipped="0" time="6.427421">
+  <testsuite name="_tests/e2e/comprehensive.test.ts" file="_tests/e2e/comprehensive.test.ts" tests="11" assertions="25" failures="0" skipped="0" time="0" hostname="MacBook-Pro.local">
+    <testsuite name="E2E: Comprehensive Todo Application Lifecycle" file="_tests/e2e/comprehensive.test.ts" line="6" tests="11" assertions="25" failures="0" skipped="0" time="0" hostname="MacBook-Pro.local">
+      <testsuite name="Authentication Layer" file="_tests/e2e/comprehensive.test.ts" line="96" tests="5" assertions="11" failures="0" skipped="0" time="1.025" hostname="MacBook-Pro.local">
+        <testcase name="Should Register a new user" classname="Authentication Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.096845" file="_tests/e2e/comprehensive.test.ts" line="97" assertions="3" />
+        <testcase name="Should Login successfully and return JWT" classname="Authentication Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.078899" file="_tests/e2e/comprehensive.test.ts" line="112" assertions="2" />
+        <testcase name="Should trigger Forgot Password flow and catch email in Mailpit" classname="Authentication Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.398449" file="_tests/e2e/comprehensive.test.ts" line="126" assertions="3" />
+        <testcase name="Should Reset Password securely" classname="Authentication Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.121329" file="_tests/e2e/comprehensive.test.ts" line="151" assertions="1" />
+        <testcase name="Should Verify Login with new password (and reject old)" classname="Authentication Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.332243" file="_tests/e2e/comprehensive.test.ts" line="162" assertions="2" />
+      </testsuite>
+      <testsuite name="CRUD &amp; Relationship Layer" file="_tests/e2e/comprehensive.test.ts" line="190" tests="3" assertions="10" failures="0" skipped="0" time="0.059" hostname="MacBook-Pro.local">
+        <testcase name="Should Create a Task tied to the User" classname="CRUD &amp;amp; Relationship Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.015263" file="_tests/e2e/comprehensive.test.ts" line="191" assertions="4" />
+        <testcase name="Should Read the Task via the collection (filtering by relationship)" classname="CRUD &amp;amp; Relationship Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.003063" file="_tests/e2e/comprehensive.test.ts" line="210" assertions="4" />
+        <testcase name="Should Update (Patch) the Task to completed" classname="CRUD &amp;amp; Relationship Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.04146" file="_tests/e2e/comprehensive.test.ts" line="224" assertions="2" />
+      </testsuite>
+      <testsuite name="Realtime / Durable Streams Layer" file="_tests/e2e/comprehensive.test.ts" line="244" tests="3" assertions="4" failures="0" skipped="0" time="0.013" hostname="MacBook-Pro.local">
+        <testcase name="Should reject SSE stream access without token (Security)" classname="Realtime / Durable Streams Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.002386" file="_tests/e2e/comprehensive.test.ts" line="245" assertions="1" />
+        <testcase name="Should accept SSE stream access with valid token" classname="Realtime / Durable Streams Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.000321" file="_tests/e2e/comprehensive.test.ts" line="256" assertions="1" />
+        <testcase name="Should Delete the Task securely" classname="Realtime / Durable Streams Layer &amp;gt; E2E: Comprehensive Todo Application Lifecycle" time="0.011348" file="_tests/e2e/comprehensive.test.ts" line="267" assertions="2" />
+      </testsuite>
+    </testsuite>
+  </testsuite>
+  <testsuite name="_tests/e2e/email.test.ts" file="_tests/e2e/email.test.ts" tests="2" assertions="11" failures="0" skipped="0" time="0" hostname="MacBook-Pro.local">
+    <testsuite name="E2E: Email Flow (Forgot / Reset Password)" file="_tests/e2e/email.test.ts" line="59" tests="2" assertions="11" failures="0" skipped="0" time="0.361" hostname="MacBook-Pro.local">
+      <testcase name="Should trigger email dispatch on /forgot-password" classname="E2E: Email Flow (Forgot / Reset Password)" time="0.126088" file="_tests/e2e/email.test.ts" line="123" assertions="6" />
+      <testcase name="Should reset password using the token sent in the email" classname="E2E: Email Flow (Forgot / Reset Password)" time="0.235121" file="_tests/e2e/email.test.ts" line="161" assertions="5" />
+    </testsuite>
+  </testsuite>
+  <testsuite name="_tests/e2e/dev.test.ts" file="_tests/e2e/dev.test.ts" tests="2" assertions="3" failures="0" skipped="0" time="0" hostname="MacBook-Pro.local">
+    <testsuite name="Dev Watcher E2E" file="_tests/e2e/dev.test.ts" line="10" tests="2" assertions="3" failures="0" skipped="0" time="4.018" hostname="MacBook-Pro.local">
+      <testcase name="watches for file changes and rebuilds" classname="Dev Watcher E2E" time="2.009188" file="_tests/e2e/dev.test.ts" line="21" assertions="2" />
+      <testcase name="debounces rapid rapid file change events to avoid build race conditions" classname="Dev Watcher E2E" time="2.009896" file="_tests/e2e/dev.test.ts" line="98" assertions="1" />
+    </testsuite>
+  </testsuite>
+  <testsuite name="_tests/e2e/cli.test.ts" file="_tests/e2e/cli.test.ts" tests="4" assertions="19" failures="0" skipped="0" time="0" hostname="MacBook-Pro.local">
+    <testsuite name="E2E CLI Tests" file="_tests/e2e/cli.test.ts" line="11" tests="4" assertions="19" failures="0" skipped="0" time="0.368" hostname="MacBook-Pro.local">
+      <testcase name="successfully builds a valid radiant project" classname="E2E CLI Tests" time="0.150645" file="_tests/e2e/cli.test.ts" line="22" assertions="10" />
+      <testcase name="successfully builds a project with global config and env manipulators" classname="E2E CLI Tests" time="0.072896" file="_tests/e2e/cli.test.ts" line="63" assertions="4" />
+      <testcase name="fails and exits with code 1 for syntax errors" classname="E2E CLI Tests" time="0.070774" file="_tests/e2e/cli.test.ts" line="89" assertions="2" />
+      <testcase name="fails and exits with code 1 for semantic errors" classname="E2E CLI Tests" time="0.076407" file="_tests/e2e/cli.test.ts" line="104" assertions="3" />
+    </testsuite>
+  </testsuite>
+</testsuites>

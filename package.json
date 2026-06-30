@@ -12,7 +12,9 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test": "turbo run test",
+    "test": "bun run test:unit",
+    "test:unit": "bun test _tests/unit",
+    "test:e2e": "bun run scripts/run-e2e.ts",
     "link:local": "bun test && bun run scripts/link-all.ts"
   },
   "devDependencies": {

@@ -203,13 +203,15 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     const isRealtimeGlobal = this.schema.collections.some(c => c.realtime?.ws || c.realtime?.sse || c.realtime?.durableStream);
     if (isRealtimeGlobal) {
       const checkSecureChannel = async (channel: string, request: Request, user: import("./access").AuthUser | null) => {
-        const collection = this.schema.collections.find(c => c.slug === channel);
+        const collection = this.schema.collections.find((c: any) => c.slug === channel);
         if (!collection || !collection.realtime?.secure) return true;
+        if (!user) return false; // Inherently reject if secure is true but no user is provided
+
         try {
           const ctx: import("./access").RadiantRequestContext = {
             request,
             user,
-            radiant: this
+            radiant: this as any
           };
           await this.checkAccess(collection.slug, "read", ctx);
           return true;
@@ -233,8 +235,8 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         return checkSecureChannel(room, req, user);
       };
       
-      this.router.get(`/ws`, async (ctx) => RadiantWebsocket.route({ path: `${prefix}/ws`, onJoinRoom })(ctx.request as any, undefined));
-      this.router.get(`/sse`, async (ctx) => RadiantSSE.route({ path: `${prefix}/sse`, onSubscribe })(ctx.request as any));
+      this.router.get(`${prefix}/ws`, async (ctx) => RadiantWebsocket.route({ path: `${prefix}/ws`, onJoinRoom })(ctx.request as any, undefined));
+      this.router.get(`${prefix}/sse`, async (ctx) => RadiantSSE.route({ path: `${prefix}/sse`, onSubscribe })(ctx.request as any));
     }
 
     // Mount Global Upload Route

@@ -67,7 +67,7 @@ describe("E2E: Email Flow (Forgot / Reset Password)", () => {
     // Standard Mailpit SMTP connection
     const mailpitTransport = new NodemailerTransport({
       host: "127.0.0.1",
-      port: 1025,
+      port: 1026,
       secure: false,
       ignoreTLS: true,
     });
@@ -110,7 +110,7 @@ describe("E2E: Email Flow (Forgot / Reset Password)", () => {
     
     // Clear out mailpit messages before test
     try {
-      await fetch("http://localhost:8025/api/v1/messages", { method: "DELETE" });
+      await fetch("http://localhost:8026/api/v1/messages", { method: "DELETE" });
     } catch (e) {
       // ignore
     }
@@ -137,8 +137,8 @@ describe("E2E: Email Flow (Forgot / Reset Password)", () => {
     await new Promise(r => setTimeout(r, 100));
 
     // Fetch latest email from Mailpit
-    const mailpitRes = await fetch("http://localhost:8025/api/v1/messages?limit=1");
-    if (!mailpitRes.ok) throw new Error("Mailpit not running or unreachable at port 8025.");
+    const mailpitRes = await fetch("http://localhost:8026/api/v1/messages?limit=1");
+    if (!mailpitRes.ok) throw new Error("Mailpit not running or unreachable at port 8026.");
     
     const messages = await mailpitRes.json();
     expect(messages.messages.length).toBeGreaterThan(0);
@@ -146,7 +146,7 @@ describe("E2E: Email Flow (Forgot / Reset Password)", () => {
     expect(latestMessage.Subject).toBe("Reset your test app password");
     
     // Get the message source to extract the token
-    const msgRes = await fetch(`http://localhost:8025/api/v1/message/${latestMessage.ID}`);
+    const msgRes = await fetch(`http://localhost:8026/api/v1/message/${latestMessage.ID}`);
     const msgData = await msgRes.json();
     const htmlBody = msgData.HTML;
     
@@ -160,7 +160,7 @@ describe("E2E: Email Flow (Forgot / Reset Password)", () => {
 
   test("Should reset password using the token sent in the email", async () => {
     // Clear out mailpit again
-    await fetch("http://localhost:8025/api/v1/messages", { method: "DELETE" });
+    await fetch("http://localhost:8026/api/v1/messages", { method: "DELETE" });
 
     // Make the reset password request
     const response = await server.fetch(
@@ -179,14 +179,14 @@ describe("E2E: Email Flow (Forgot / Reset Password)", () => {
     await new Promise(r => setTimeout(r, 100));
 
     // Verify that the success email was sent in Mailpit
-    const mailpitRes2 = await fetch("http://localhost:8025/api/v1/messages?limit=1");
+    const mailpitRes2 = await fetch("http://localhost:8026/api/v1/messages?limit=1");
     const messages2 = await mailpitRes2.json();
     expect(messages2.messages.length).toBeGreaterThan(0);
     const latestMessage2 = messages2.messages[0];
     
     expect(latestMessage2.Subject).toBe("Your Radiant E2E password has been reset");
     
-    const msgRes2 = await fetch(`http://localhost:8025/api/v1/message/${latestMessage2.ID}`);
+    const msgRes2 = await fetch(`http://localhost:8026/api/v1/message/${latestMessage2.ID}`);
     const msgData2 = await msgRes2.json();
     const htmlBody2 = msgData2.HTML;
     

@@ -39,7 +39,7 @@ mock.module("bun", () => {
   };
 });
 
-import { RedisAdapter } from "../../../../plugins/ts/redis/src/adapter";
+import { RedisAdapter } from "../../../../plugins/ts/redis-db/src/adapter";
 
 describe("RedisAdapter", () => {
   test("creates and retrieves documents", async () => {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="4" assertions="19" failures="0" skipped="0" time="1.985429">
+  <testsuite name="_tests/e2e/cli.test.ts" file="_tests/e2e/cli.test.ts" tests="4" assertions="19" failures="0" skipped="0" time="0" hostname="MacBook-Pro.local">
+    <testsuite name="E2E CLI Tests" file="_tests/e2e/cli.test.ts" line="11" tests="4" assertions="19" failures="0" skipped="0" time="1.799" hostname="MacBook-Pro.local">
+      <testcase name="successfully builds a valid radiant project" classname="E2E CLI Tests" time="1.441866" file="_tests/e2e/cli.test.ts" line="22" assertions="10" />
+      <testcase name="successfully builds a project with global config and env manipulators" classname="E2E CLI Tests" time="0.111022" file="_tests/e2e/cli.test.ts" line="63" assertions="4" />
+      <testcase name="fails and exits with code 1 for syntax errors" classname="E2E CLI Tests" time="0.145392" file="_tests/e2e/cli.test.ts" line="89" assertions="2" />
+      <testcase name="fails and exits with code 1 for semantic errors" classname="E2E CLI Tests" time="0.102458" file="_tests/e2e/cli.test.ts" line="104" assertions="3" />
+    </testsuite>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,397 @@
+$ bun test _tests/unit
+bun test v1.4.0-canary.1 (78f0fff16)
+
+_tests/unit/plugins/email.test.ts:
+(pass) Email Integration > Should configure nodemailer via jsonTransport [36.75ms]
+(pass) Email Integration > Should render Welcome template correctly [0.68ms]
+(pass) Email Integration > Should use custom templates when provided [0.18ms]
+
+_tests/unit/cli/compiler.test.ts:
+(pass) Compiler > validates correct config block successfully [0.33ms]
+(pass) Compiler > reports errors for unknown config properties [0.11ms]
+(pass) Compiler > reports errors for unknown monitoring properties [0.04ms]
+(pass) Compiler > reports error for duplicate collection names [0.08ms]
+(pass) Compiler > reports errors for unknown collection properties [0.03ms]
+(pass) Compiler > compiles collection fields and decorators correctly [0.14ms]
+(pass) Compiler > reports error when defining a relationship to a non-existent collection [0.04ms]
+(pass) Compiler > compiles relationship fields successfully (One-to-One, Has-Many) [0.03ms]
+(pass) Compiler > compiles env() manipulator successfully [0.04ms]
+(pass) Compiler > reports error for env() manipulator with no arguments [0.18ms]
+(pass) Compiler > reports errors for deeply malformed blocks instead of crashing [0.03ms]
+(pass) Compiler > reports errors for cross-file duplicate collections [0.03ms]
+
+_tests/unit/cli/lexer.test.ts:
+(pass) Lexer > tokenizes keywords correctly [0.50ms]
+(pass) Lexer > tokenizes identifiers correctly [0.05ms]
+(pass) Lexer > tokenizes decorators correctly [0.05ms]
+(pass) Lexer > tokenizes literals correctly [0.07ms]
+(pass) Lexer > tokenizes punctuation correctly [0.06ms]
+(pass) Lexer > skips whitespace and comments [0.10ms]
+(pass) Lexer > reports errors for invalid tokens [0.11ms]
+(pass) Lexer > recovers or errors gracefully on unterminated strings [0.03ms]
+(pass) Lexer > handles zero-width spaces and garbage gracefully without crashing [0.04ms]
+
+_tests/unit/cli/scaffold.test.ts:
+[90m┌[39m   Radiant Framework 
+[?25l[90m│[39m
+[32m◇[39m  Bun project initialized
+[?25h[90m│[39m
+[32m◇[39m  [0mScaffold Complete[0m [90m───────────────────────────────╮[39m
+[90m│[39m                                                   [90m│[39m
+[90m│[39m  src/app.ts created with app initialization       [90m│[39m
+[90m│[39m  src/access.ts created for access rules           [90m│[39m
+[90m│[39m  src/custom-routes.ts created for custom routes   [90m│[39m
+[90m│[39m  src/index.ts created with server implementation  [90m│[39m
+[90m│[39m  .env created with JWT_SECRET                     [90m│[39m
+[90m│[39m                                                   [90m│[39m
+[90m├───────────────────────────────────────────────────╯[39m
+[90m│[39m
+[90m└[39m  ✨ All set! Run radiant dev to start coding!
+
+(pass) CLI Scaffold - TS Project > should scaffold with SQLite adapter by default [80.24ms]
+[90m┌[39m   Radiant Framework 
+[?25l[90m│[39m
+[32m◇[39m  Bun project initialized
+[?25h[90m│[39m
+[32m◇[39m  [0mScaffold Complete[0m [90m───────────────────────────────╮[39m
+[90m│[39m                                                   [90m│[39m
+[90m│[39m  src/app.ts created with app initialization       [90m│[39m
+[90m│[39m  src/access.ts created for access rules           [90m│[39m
+[90m│[39m  src/custom-routes.ts created for custom routes   [90m│[39m
+[90m│[39m  src/index.ts created with server implementation  [90m│[39m
+[90m│[39m  .env created with JWT_SECRET                     [90m│[39m
+[90m│[39m                                                   [90m│[39m
+[90m├───────────────────────────────────────────────────╯[39m
+[90m│[39m
+[90m└[39m  ✨ All set! Run radiant dev to start coding!
+
+(pass) CLI Scaffold - TS Project > should scaffold with Postgres adapter [75.63ms]
+[90m┌[39m   Radiant Framework 
+[?25l[90m│[39m
+[32m◇[39m  Bun project initialized
+[?25h[90m│[39m
+[32m◇[39m  [0mScaffold Complete[0m [90m───────────────────────────────╮[39m
+[90m│[39m                                                   [90m│[39m
+[90m│[39m  src/app.ts created with app initialization       [90m│[39m
+[90m│[39m  src/access.ts created for access rules           [90m│[39m
+[90m│[39m  src/custom-routes.ts created for custom routes   [90m│[39m
+[90m│[39m  src/index.ts created with server implementation  [90m│[39m
+[90m│[39m  .env created with JWT_SECRET                     [90m│[39m
+[90m│[39m                                                   [90m│[39m
+[90m├───────────────────────────────────────────────────╯[39m
+[90m│[39m
+[90m└[39m  ✨ All set! Run radiant dev to start coding!
+
+(pass) CLI Scaffold - TS Project > should scaffold with MongoDB adapter [72.58ms]
+[90m┌[39m   Radiant Framework 
+[?25l[90m│[39m
+[32m◇[39m  Bun project initialized
+[?25h[90m│[39m
+[32m◇[39m  [0mScaffold Complete[0m [90m───────────────────────────────╮[39m
+[90m│[39m                                                   [90m│[39m
+[90m│[39m  src/app.ts created with app initialization       [90m│[39m
+[90m│[39m  src/access.ts created for access rules           [90m│[39m
+[90m│[39m  src/custom-routes.ts created for custom routes   [90m│[39m
+[90m│[39m  src/index.ts created with server implementation  [90m│[39m
+[90m│[39m  .env created with JWT_SECRET                     [90m│[39m
+[90m│[39m                                                   [90m│[39m
+[90m├───────────────────────────────────────────────────╯[39m
+[90m│[39m
+[90m└[39m  ✨ All set! Run radiant dev to start coding!
+
+(pass) CLI Scaffold - TS Project > should scaffold with Redis adapter [72.79ms]
+[90m┌[39m   Radiant Framework 
+[?25l[90m│[39m
+[32m◇[39m  Bun project initialized
+[?25h[90m│[39m
+[32m◇[39m  [0mScaffold Complete[0m [90m───────────────────────────────╮[39m
+[90m│[39m                                                   [90m│[39m
+[90m│[39m  src/app.ts created with app initialization       [90m│[39m
+[90m│[39m  src/access.ts created for access rules           [90m│[39m
+[90m│[39m  src/custom-routes.ts created for custom routes   [90m│[39m
+[90m│[39m  src/index.ts created with server implementation  [90m│[39m
+[90m│[39m  .env created with JWT_SECRET                     [90m│[39m
+[90m│[39m                                                   [90m│[39m
+[90m├───────────────────────────────────────────────────╯[39m
+[90m│[39m
+[90m└[39m  ✨ All set! Run radiant dev to start coding!
+
+(pass) CLI Scaffold - TS Project > should scaffold with SurrealDB adapter [78.62ms]
+
+_tests/unit/cli/parser.test.ts:
+(pass) parses a basic radiant schema [1.87ms]
+
+_tests/unit/cli/globals.test.ts:
+(pass) CLI Globals Compiler > Parses and compiles a global block [0.48ms]
+(pass) CLI Globals Compiler > Validates global fields [0.14ms]
+
+_tests/unit/cli/formatter.test.ts:
+(pass) Formatter > formats empty or blank files safely [0.26ms]
+(pass) Formatter > formats basic block indentation [0.34ms]
+(pass) Formatter > formats nested block indentation properly [0.23ms]
+(pass) Formatter > handles inline opening brace and trailing semicolons/commas [0.13ms]
+
+_tests/unit/cli/cli.spec.ts:
+
+_tests/unit/cli/generator.test.ts:
+(pass) TypeScript Generator > generates basic core models, omitting password [0.31ms]
+(pass) TypeScript Generator > generates accurate TypeScript types for relationships (Belongs-To, Has-Many) [0.07ms]
+(pass) TypeScript Generator > handles inline objects [0.04ms]
+(pass) TypeScript Generator > generates proper Where clauses based on field types [0.04ms]
+(pass) TypeScript Generator > generates global framework registry [0.08ms]
+
+_tests/unit/plugins/surrealdb/adapter.test.ts:
+(pass) SurrealDBAdapter > builds simple equality conditions [0.23ms]
+(pass) SurrealDBAdapter > builds operator conditions [0.16ms]
+(pass) SurrealDBAdapter > builds IN/ANY conditions [0.05ms]
+(pass) SurrealDBAdapter > builds boolean OR conditions [0.04ms]
+
+_tests/unit/plugins/redis/adapter.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../../../plugins/ts/redis/src/adapter' from '/Users/chijiokeudokporo/CodesOrdinate/radiant/_tests/unit/plugins/redis/adapter.test.ts'
+-------------------------------
+
+
+_tests/unit/plugins/mongodb/adapter.test.ts:
+(pass) MongoDBAdapter > builds simple equality filters [0.44ms]
+(pass) MongoDBAdapter > builds operator filters [0.15ms]
+(pass) MongoDBAdapter > builds boolean OR/AND conditions [0.09ms]
+
+_tests/unit/plugins/postgres/adapter.test.ts:
+(pass) PostgresAdapter > builds basic operators [0.22ms]
+(pass) PostgresAdapter > builds IN operators [0.04ms]
+(pass) PostgresAdapter > builds JSON operators [0.15ms]
+
+_tests/unit/runtime/ts/auth.test.ts:
+(pass) JWTAuthenticator > generateTokenPair creates valid signed JWTs and stores refresh token hash [3.21ms]
+(pass) JWTAuthenticator > verifyAccessToken correctly extracts payload from valid token [0.45ms]
+(pass) JWTAuthenticator > verifyAccessToken returns null for tampered or invalid token [0.41ms]
+(pass) JWTAuthenticator > refreshTokenPair issues new tokens and revokes old one [0.84ms]
+(pass) JWTAuthenticator > refreshTokenPair returns null for access token (wrong type) [0.43ms]
+(pass) JWTAuthenticator > revokeRefreshToken permanently revokes a refresh token [0.40ms]
+(pass) JWTAuthenticator > purgeExpiredTokens evicts expired tokens from memory [0.41ms]
+
+_tests/unit/runtime/ts/banner.spec.ts:
+(pass) RadiantRuntime Banner > prints the custom ASCII banner on app.start() [6.17ms]
+
+_tests/unit/runtime/ts/runtime.test.ts:
+(pass) RadiantRuntime > resolves env variables natively using resolveEnvVariables [0.68ms]
+(pass) RadiantRuntime > throws error if JWT strategy is enabled without JWT_SECRET [0.36ms]
+(pass) RadiantRuntime > initializes authEngine successfully if JWT_SECRET is provided [0.29ms]
+(pass) RadiantRuntime > NaN env casting safely falls back to string if value is not numeric [0.32ms]
+(pass) RadiantRuntime > Missing JWT engine safely rejects /refresh requests [1.04ms]
+(pass) RadiantRuntime > Concurrent requests to RadiantRuntime do not pollute request context [0.59ms]
+[Radiant Auto-Sync] Adding column: users.age
+[Radiant Auto-Sync] Creating table: posts
+(pass) RadiantRuntime > Auto-Sync Database Schema > executes system table statements and schema sync correctly [0.44ms]
+[Radiant Auto-Sync] Dropping orphaned table: old_table
+[Radiant Auto-Sync] Dropping orphaned column: users.old_col
+(pass) RadiantRuntime > Auto-Sync Database Schema > drops orphaned tables and columns when dropOrphan is true [0.36ms]
+[Radiant Auto-Sync] Orphaned table detected but not dropped: old_table
+[Radiant Auto-Sync] Orphaned column detected but not dropped: users.old_col
+(pass) RadiantRuntime > Auto-Sync Database Schema > warns but does not drop orphans when dropOrphan is false [0.34ms]
+(pass) RadiantRuntime > Dynamic API Routing > GET list returns collection data [77.52ms]
+(pass) RadiantRuntime > Dynamic API Routing > GET by ID returns specific document [80.70ms]
+(pass) RadiantRuntime > Dynamic API Routing > POST creates a new document [78.15ms]
+(pass) RadiantRuntime > Dynamic API Routing > PATCH updates an existing document [78.50ms]
+(pass) RadiantRuntime > Dynamic API Routing > DELETE removes an existing document [95.14ms]
+(pass) RadiantRuntime > Dynamic API Routing > Access rules block unauthorized requests [81.33ms]
+(pass) RadiantRuntime > Dynamic API Routing > Hooks intercept and modify payload [78.46ms]
+(pass) RadiantRuntime > Dynamic API Routing > Auth routing: /login successfully issues JWT tokens [161.95ms]
+(pass) RadiantRuntime > Dynamic API Routing > Auth routing: /login rejects invalid passwords [185.53ms]
+(pass) RadiantRuntime > Dynamic API Routing > Auth routing: /register correctly hashes password and issues tokens [157.28ms]
+(pass) RadiantRuntime > Dynamic API Routing > Auth routing: /register fails for duplicate email [78.46ms]
+(pass) RadiantRuntime > Dynamic API Routing > Auth routing: /logout revokes the refresh token [155.91ms]
+(pass) Caching & Realtime & Storage > Cache is hit on subsequent GET requests [0.82ms]
+(pass) Caching & Realtime & Storage > Cache is invalidated on POST [0.49ms]
+(pass) Caching & Realtime & Storage > Upload endpoint handles file upload and returns url [1.50ms]
+
+_tests/unit/runtime/ts/core/cache.test.ts:
+(pass) core/cache > returns null for non-existent keys [0.08ms]
+(pass) core/cache > stores and retrieves values without TTL [0.05ms]
+(pass) core/cache > respects TTL and expires items correctly [0.08ms]
+(pass) core/cache > deletes multiple keys and returns count of deleted items [0.10ms]
+(pass) core/cache > close clears all cache entries [0.05ms]
+
+_tests/unit/runtime/ts/core/openapi.test.ts:
+(pass) core/openapi > generateScalarHTML() > returns HTML containing Scalar script with specUrl [0.05ms]
+(pass) core/openapi > generateOpenAPISpec() > generates basic OpenAPI document structure [0.42ms]
+(pass) core/openapi > generateOpenAPISpec() > generates components and schemas for collections [0.07ms]
+(pass) core/openapi > generateOpenAPISpec() > generates standard CRUD paths [0.04ms]
+(pass) core/openapi > generateOpenAPISpec() > hides passwords from output schemas but requires them in input [0.06ms]
+(pass) core/openapi > generateOpenAPISpec() > generates auth endpoints if collection has auth: true [0.07ms]
+(pass) core/openapi > generateOpenAPISpec() > generates endpoints and schemas for globals [0.06ms]
+{
+  "200": {
+    "description": "OK",
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ]
+        }
+      }
+    }
+  },
+  "400": {
+    "description": "Bad Request",
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "error"
+          ]
+        }
+      }
+    }
+  }
+}
+(pass) core/openapi > generateOpenAPISpec() > generates custom endpoints from app.routes using TypeBox schemas [20.72ms]
+
+_tests/unit/runtime/ts/core/request.test.ts:
+(pass) core/request > parseQuery() > parses flat query strings [0.15ms]
+(pass) core/request > parseQuery() > handles duplicate keys as arrays [0.03ms]
+(pass) core/request > parseQuery() > parses object-like bracket syntax [0.08ms]
+(pass) core/request > parseQuery() > parses deeply nested bracket syntax [0.04ms]
+(pass) core/request > parseQuery() > parses array-like bracket syntax [0.03ms]
+(pass) core/request > parseQuery() > handles mixed bracket and array values [0.02ms]
+(pass) core/request > createRouteContext() > creates a properly structured context [0.09ms]
+(pass) core/request > createRouteContext() > provides defaults for optional arguments [0.03ms]
+
+_tests/unit/runtime/ts/core/response.test.ts:
+(pass) core/response > json() > returns JSON response with default headers [0.13ms]
+(pass) core/response > json() > merges custom headers and status [0.12ms]
+(pass) core/response > empty() > returns 204 no content by default [0.10ms]
+(pass) core/response > empty() > allows overriding status and headers [0.04ms]
+(pass) core/response > redirect() > returns 302 redirect by default [0.04ms]
+(pass) core/response > redirect() > allows overriding status to 301 [0.02ms]
+(pass) core/response > error() > returns 500 formatted error by default [0.09ms]
+(pass) core/response > error() > allows custom status and error code [0.04ms]
+(pass) core/response > notFound() > returns 404 NOT_FOUND [0.06ms]
+(pass) core/response > methodNotAllowed() > returns 405 with Allow header [0.06ms]
+(pass) core/response > file() > returns Bun file for string path [0.05ms]
+(pass) core/response > file() > returns ArrayBuffer for Uint8Array [0.07ms]
+(pass) core/response > toResponse() > returns undefined for UPGRADED [0.01ms]
+(pass) core/response > toResponse() > returns the response as-is if it's already a Response [0.01ms]
+(pass) core/response > toResponse() > returns empty() if undefined [0.01ms]
+(pass) core/response > toResponse() > returns Response with string body if string [0.03ms]
+(pass) core/response > toResponse() > returns json() for objects [0.04ms]
+Radiant Unhandled Route Error: 144 |     });
+145 |   });
+146 | 
+147 |   describe("routeErrorToResponse()", () => {
+148 |     test("converts standard Error", async () => {
+149 |       const err = new Error("Broken code");
+                            ^
+error: Broken code
+      at <anonymous> (/Users/chijiokeudokporo/CodesOrdinate/radiant/_tests/unit/runtime/ts/core/response.test.ts:149:23)
+
+(pass) core/response > routeErrorToResponse() > converts standard Error [0.23ms]
+Radiant Unhandled Route Error: 154 |         message: "Broken code",
+155 |       });
+156 |     });
+157 | 
+158 |     test("includes path if request provided", async () => {
+159 |       const err = new Error("Failed route");
+                            ^
+error: Failed route
+      at <anonymous> (/Users/chijiokeudokporo/CodesOrdinate/radiant/_tests/unit/runtime/ts/core/response.test.ts:159:23)
+
+(pass) core/response > routeErrorToResponse() > includes path if request provided [0.10ms]
+Radiant Unhandled Route Error: {
+  weird: "object",
+}
+(pass) core/response > routeErrorToResponse() > handles non-Error objects safely [0.06ms]
+
+_tests/unit/runtime/ts/core/storage.test.ts:
+(pass) core/storage > initializes directory if it doesn't exist [0.02ms]
+(pass) core/storage > saves a File correctly and returns metadata [0.44ms]
+(pass) core/storage > respects custom filename option [0.54ms]
+(pass) core/storage > deletes an existing file [0.59ms]
+(pass) core/storage > deleteFile gracefully ignores missing files [0.07ms]
+
+_tests/unit/runtime/ts/core/stream.test.ts:
+(pass) Realtime Durable Streams > should initialize with default MemoryStreamStore [0.62ms]
+(pass) Realtime Durable Streams > should emit to DurableStream on creation [0.93ms]
+(pass) Realtime Durable Streams > should respect granular stream configuration [0.60ms]
+(pass) Realtime Durable Streams > should enforce capacity on MemoryStreamStore [0.09ms]
+(pass) Realtime Durable Streams > should return history from REST API [0.55ms]
+(pass) Realtime Durable Streams > should enforce secure access on /stream REST API [0.39ms]
+
+_tests/unit/runtime/ts/main/websocket.test.ts:
+(pass) main/websocket > registers and removes connections [1.10ms]
+(pass) main/websocket > manages rooms correctly [0.11ms]
+(pass) main/websocket > broadcasts to room members except excluded [0.09ms]
+(pass) main/websocket > creates bun route that handles upgrades [0.26ms]
+(pass) main/websocket > handles messages and internal routing [0.31ms]
+
+_tests/unit/runtime/ts/main/cron.test.ts:
+(pass) Cron Jobs & Task Scheduling > Should register and manage a cron job [1.21ms]
+(pass) Cron Jobs & Task Scheduling > Should prevent duplicate cron job names [0.48ms]
+
+[38;2;34;211;238m[1m  _____           _ _             _   [0m
+[38;2;34;211;238m[1m |  __ \         | (_)           | |  [0m
+[38;2;34;211;238m[1m | |__) |__ _  __| |_  __ _ _ __ | |_ [0m
+[38;2;34;211;238m[1m |  _  // _` |/ _` | |/ _` | '_ \| __|[0m
+[38;2;34;211;238m[1m | | \ \ (_| | (_| | | (_| | | | | |_ [0m
+[38;2;34;211;238m[1m |_|  \_\__,_|\__,_|_|\__,_|_| |_|\__|[0m
+ 
+ [38;2;255;255;255m✨ Radiant Engine Online[0m
+ [38;2;161;161;170m🌍 http://localhost:51095[0m
+
+(pass) Cron Jobs & Task Scheduling > Should stop all cron jobs when server stops [1.60ms]
+
+_tests/unit/runtime/ts/main/router.test.ts:
+(pass) main/router > initializes successfully [0.05ms]
+(pass) main/router > injects CORS headers when configured via toNativeRoutes parameters [0.91ms]
+(pass) main/router > validates schemas and rejects invalid query params [4.30ms]
+(pass) main/router > validates body schema and rejects invalid JSON [0.66ms]
+
+_tests/unit/runtime/ts/main/plugin.test.ts:
+
+[38;2;34;211;238m[1m  _____           _ _             _   [0m
+[38;2;34;211;238m[1m |  __ \         | (_)           | |  [0m
+[38;2;34;211;238m[1m | |__) |__ _  __| |_  __ _ _ __ | |_ [0m
+[38;2;34;211;238m[1m |  _  // _` |/ _` | |/ _` | '_ \| __|[0m
+[38;2;34;211;238m[1m | | \ \ (_| | (_| | | (_| | | | | |_ [0m
+[38;2;34;211;238m[1m |_|  \_\__,_|\__,_|_|\__,_|_| |_|\__|[0m
+ 
+ [38;2;255;255;255m✨ Radiant Engine Online[0m
+ [38;2;161;161;170m🌍 http://localhost:51096[0m
+
+(pass) Plugin System > Initializes plugins during start() and allows overriding core components [1.76ms]
+(pass) Plugin System > Executes beforeRequest, afterRequest, and onError global hooks correctly [0.79ms]
+
+_tests/unit/runtime/ts/main/globals.test.ts:
+(pass) Global Configuration Router > GET /api/globals/siteSettings returns empty object if not created yet [0.93ms]
+(pass) Global Configuration Router > POST /api/globals/siteSettings creates the global with id=slug [0.60ms]
+(pass) Global Configuration Router > POST /api/globals/siteSettings updates the existing global [0.41ms]
+
+_tests/unit/runtime/ts/main/sse.test.ts:
+(pass) main/sse > registers connections and manages channels [0.18ms]
+(pass) main/sse > broadcasts correctly format SSE payloads [0.19ms]
+(pass) main/sse > creates an SSE route that handles requests and aborts [0.68ms]
+
+1 tests failed:
+
+ 155 pass
+ 1 fail
+ 1 error
+ 1 snapshots, 455 expect() calls
+Ran 156 tests across 28 files. [2.13s]
+error: script "test:unit" exited with code 1
