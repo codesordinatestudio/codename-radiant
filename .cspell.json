@@ -1,5 +1,8 @@
 {
     "words": [
+        "CONTAINSALL",
+        "CONTAINSANY",
+        "CONTAINSNOT",
         "mailpit",
         "surrealdb"
     ]

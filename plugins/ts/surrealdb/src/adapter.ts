@@ -1,7 +1,12 @@
 // SurrealDB Adapter
 // Version: 0.0.4
 
-import type { RadiantAdapter, QueryArgs, RadiantQueryResult, RadiantCollection } from "@codesordinatestudio/radiant-bun/core";
+import type {
+  RadiantAdapter,
+  QueryArgs,
+  PaginatedResult,
+  CollectionConfig,
+} from "@codesordinatestudio/radiant-bun/core";
 interface ColumnDefinition {
   name: string;
   type: string;
@@ -103,9 +108,10 @@ export class SurrealDBAdapter implements RadiantAdapter {
    * Register collection field names so that `normalizeRecord` can hydrate
    * fields that SurrealDB omits when their value is NONE.
    */
-  configureRadiantCollections(collections: RadiantCollection[]): void {
-    for (const col of collections) {
-      const names: string[] = col.fields.map((f) => f.name);
+  configureRadiantCollections(collections: CollectionConfig[]): void {
+    for (const colDef of collections) {
+      const col = colDef as any;
+      const names: string[] = col.fields.map((f: any) => f.name);
       if (col.timestamps) names.push("createdAt", "updatedAt");
       if (col.softDelete) names.push("deletedAt");
       if (col.auth && col.requireEmailVerification) names.push("emailVerified", "verifyToken");
@@ -114,7 +120,7 @@ export class SurrealDBAdapter implements RadiantAdapter {
     }
   }
 
-  registerRadiantCollections(collections: RadiantCollection[]): void {
+  registerRadiantCollections(collections: CollectionConfig[]): void {
     this.configureRadiantCollections(collections);
   }
 
@@ -177,7 +183,9 @@ export class SurrealDBAdapter implements RadiantAdapter {
 
     const dbInfo = (await this.raw("INFO FOR DB")) as Record<string, unknown>;
     const tablesMap = (dbInfo as { tables?: Record<string, unknown> }).tables ?? {};
-    schema.tables = Object.keys(tablesMap).filter((name) => !name.startsWith("radiant-bun_") && name !== "undefined" && name !== "null");
+    schema.tables = Object.keys(tablesMap).filter(
+      (name) => !name.startsWith("radiant-bun_") && name !== "undefined" && name !== "null",
+    );
 
     for (const tableName of schema.tables) {
       const tableInfo = (await this.raw(`INFO FOR TABLE ${tableName}`)) as Record<string, unknown>;
@@ -219,7 +227,7 @@ export class SurrealDBAdapter implements RadiantAdapter {
   }
 
   renameColumnDDL(table: string, oldName: string, _newName: string, column: unknown): string {
-    return generateRenameColumnSurreal(table, oldName, column as ColumnDefinition);
+    return generateRenameColumnSurreal(table, oldName, _newName);
   }
 
   addColumnDDL(table: string, column: unknown): string | null {
@@ -234,8 +242,8 @@ export class SurrealDBAdapter implements RadiantAdapter {
     return `REMOVE TABLE ${surrealIdentifier(table)};`;
   }
 
-  async find(collection: string, query: QueryArgs): Promise<RadiantQueryResult> {
-    const { where, sort, limit = 10, page = 1, cursor } = query;
+  async find(collection: string, query: QueryArgs): Promise<PaginatedResult> {
+    const { where, sort, limit = 10, page = 1, cursor } = query as any;
 
     let whereSql = "";
     const params: Record<string, unknown> = {};
@@ -250,9 +258,9 @@ export class SurrealDBAdapter implements RadiantAdapter {
     if (sort) {
       const parts = sort
         .split(",")
-        .map((s) => s.trim())
+        .map((s: string) => s.trim())
         .filter(Boolean);
-      const orderParts = parts.map((part) => {
+      const orderParts = parts.map((part: string) => {
         const desc = part.startsWith("-");
         const field = desc ? part.slice(1) : part;
         return `${surrealPath(field)} ${desc ? "DESC" : "ASC"}`;
@@ -296,7 +304,7 @@ export class SurrealDBAdapter implements RadiantAdapter {
 
       let nextCursor: string | null = null;
       if (hasNextPage && resultDocs.length > 0) {
-        const lastDoc = resultDocs[resultDocs.length - 1];
+        const lastDoc = resultDocs[resultDocs.length - 1] as any;
         nextCursor = Buffer.from(
           JSON.stringify({ id: lastDoc?.id, sortValue: sortField !== "id" ? lastDoc[sortField] : undefined }),
         ).toString("base64url");
@@ -312,7 +320,7 @@ export class SurrealDBAdapter implements RadiantAdapter {
         hasPrevPage: true,
         nextCursor,
         prevCursor: null,
-      };
+      } as PaginatedResult;
     }
 
     // ---- offset-based pagination (default) ----

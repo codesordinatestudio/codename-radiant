@@ -1,7 +1,7 @@
 // MongoDB Adapter
 // Version: 0.0.4
 
-import type { RadiantAdapter, QueryArgs, RadiantQueryResult, RadiantCollection } from "@codesordinatestudio/radiant-bun/core";
+import type { RadiantAdapter, QueryArgs, PaginatedResult, CollectionConfig } from "@codesordinatestudio/radiant-bun/core";
 
 interface ColumnDefinition {
   name: string;
@@ -105,10 +105,12 @@ export class MongoDBAdapter implements RadiantAdapter {
     this._databaseName = this.resolveDatabaseName(options);
   }
 
-  configureRadiantCollections(collections: RadiantCollection[]): void {
-    for (const col of collections) {
+  configureRadiantCollections(collections: CollectionConfig[]): void {
+    for (const colDef of collections) {
+      const col = colDef as any;
       const fields = new Set<string>(["id"]);
-      for (const field of col.fields) {
+      for (const fieldDef of col.fields) {
+        const field = fieldDef as any;
         fields.add(field.name);
         if (field.type === "relationship" && field.relationTo) {
           this._relationshipTargets.set(`${col.slug}.${field.name}`, field.relationTo);
@@ -234,15 +236,15 @@ export class MongoDBAdapter implements RadiantAdapter {
     return encodeDDL(`DROP TABLE ${table};`, { op: "dropTable", table });
   }
 
-  async find(collection: string, query: QueryArgs): Promise<RadiantQueryResult> {
-    const { where, sort, limit = 10, page = 1, cursor } = query;
+  async find(collection: string, query: QueryArgs): Promise<PaginatedResult> {
+    const { where, sort, limit = 10, page = 1, cursor } = query as any;
     const coll = this.collection(collection);
     let filter = await this.buildMongoWhere((where as Record<string, unknown> | undefined) ?? {}, collection);
     const sortSpec = this.buildSort(collection, sort);
 
     if (cursor) {
       const decoded = this.decodeCursor(cursor);
-      const primarySort = sort ? sort.split(",")[0].trim() : "id";
+      const primarySort = sort ? ((sort as string).split(",")[0] as string).trim() : "id";
       const desc = primarySort.startsWith("-");
       const sortField = desc ? primarySort.slice(1) : primarySort;
       const storeSortField = this.runtimeFieldToStore(collection, sortField);
@@ -277,7 +279,7 @@ export class MongoDBAdapter implements RadiantAdapter {
               ).toString("base64url")
             : null,
         prevCursor: null,
-      };
+      } as PaginatedResult;
     }
 
     const offset = (page - 1) * limit;
@@ -437,7 +439,7 @@ export class MongoDBAdapter implements RadiantAdapter {
   private runtimeFieldToStore(collection: string, field: string): string {
     if (field.includes(".")) {
       const [root, ...rest] = field.split(".");
-      return assertMongoFieldPath(`${this.runtimeFieldToStore(collection, root)}.${rest.join(".")}`);
+      return assertMongoFieldPath(`${this.runtimeFieldToStore(collection, root as string)}.${rest.join(".")}`);
     }
     if (field === "id") return "_id";
     if (collection.startsWith("radiant-bun_")) return assertMongoFieldPath(field);
@@ -502,7 +504,7 @@ export class MongoDBAdapter implements RadiantAdapter {
             .find(nestedWhere, { projection: { _id: 1 } })
             .toArray();
           conditions.push({
-            [this.runtimeFieldToStore(collection, rootField)]: { $in: relatedDocs.map((doc: any) => doc._id) },
+            [this.runtimeFieldToStore(collection, rootField as string)]: { $in: relatedDocs.map((doc: any) => doc._id) },
           });
           continue;
         }
@@ -518,7 +520,7 @@ export class MongoDBAdapter implements RadiantAdapter {
     }
 
     if (conditions.length === 0) return {};
-    if (conditions.length === 1) return conditions[0];
+    if (conditions.length === 1) return conditions[0]!;
     return { $and: conditions };
   }
 
