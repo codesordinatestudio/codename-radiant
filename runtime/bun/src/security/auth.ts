@@ -140,4 +140,32 @@ export class JWTAuthenticator {
     const tokenHash = await sha256(refreshToken);
     this.refreshTokenStore.delete(tokenHash);
   }
+
+  async generatePasswordResetToken(userId: string, collection: string): Promise<string> {
+    const secretKey = new TextEncoder().encode(this.config.secret);
+    
+    let resetBuilder = new SignJWT({
+      sub: userId,
+      collection,
+      type: "reset",
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setJti(generateId())
+      .setExpirationTime("1h");
+      
+    return resetBuilder.sign(secretKey);
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<{ userId: string, collection: string } | null> {
+    try {
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(this.config.secret));
+      if (payload.type !== "reset") return null;
+      return {
+        userId: payload.sub as string,
+        collection: payload.collection as string,
+      };
+    } catch {
+      return null;
+    }
+  }
 }

@@ -1,7 +1,7 @@
 // MongoDB Adapter
 // Version: 0.0.4
 
-import type { LucentAdapter, QueryArgs, QueryResult, Collection } from "@codesordinatestudio/radiant-bun/core";
+import type { RadiantAdapter, QueryArgs, RadiantQueryResult, RadiantCollection } from "@codesordinatestudio/radiant-bun/core";
 
 interface ColumnDefinition {
   name: string;
@@ -39,7 +39,7 @@ export type MongoDBOptions = {
 };
 
 type MongoDDLCommand =
-  | { op: "createCollection"; table: TableDefinition }
+  | { op: "createRadiantCollection"; table: TableDefinition }
   | { op: "addColumn"; table: string; column: ColumnDefinition }
   | { op: "renameColumn"; table: string; oldName: string; newName: string; column: ColumnDefinition }
   | { op: "dropColumn"; table: string; column: string }
@@ -60,7 +60,7 @@ const STORE_TO_SCHEMA_FIELD = new Map<string, string>(
   Object.entries(SCHEMA_TO_STORE_FIELD).map(([schema, store]) => [store, schema]),
 );
 
-function assertMongoCollectionName(name: string): string {
+function assertMongoRadiantCollectionName(name: string): string {
   if (!name || name.startsWith("$") || name.includes("\0")) {
     throw new Error(`Invalid MongoDB collection name '${name}'`);
   }
@@ -89,7 +89,7 @@ function decodeDDL(query: string): MongoDDLCommand | null {
 /**
  * MongoDB adapter using the official MongoDB Node driver.
  */
-export class MongoDBAdapter implements LucentAdapter {
+export class MongoDBAdapter implements RadiantAdapter {
   readonly adapterType = "mongodb";
   readonly supportsGeneratedConstraintSQL = false;
 
@@ -105,7 +105,7 @@ export class MongoDBAdapter implements LucentAdapter {
     this._databaseName = this.resolveDatabaseName(options);
   }
 
-  configureCollections(collections: Collection[]): void {
+  configureRadiantCollections(collections: RadiantCollection[]): void {
     for (const col of collections) {
       const fields = new Set<string>(["id"]);
       for (const field of col.fields) {
@@ -151,7 +151,7 @@ export class MongoDBAdapter implements LucentAdapter {
 
   async getCurrentSchema(): Promise<{ tables: string[]; columns: Record<string, string[]> }> {
     const schema: { tables: string[]; columns: Record<string, string[]> } = { tables: [], columns: {} };
-    const collections = await this.db().listCollections({}, { nameOnly: false }).toArray();
+    const collections = await this.db().listRadiantCollections({}, { nameOnly: false }).toArray();
 
     for (const info of collections) {
       const name = String(info.name ?? "");
@@ -204,7 +204,7 @@ export class MongoDBAdapter implements LucentAdapter {
 
   createTableDDL(table: unknown): string {
     const t = table as TableDefinition;
-    return encodeDDL(`CREATE TABLE IF NOT EXISTS ${t.name};`, { op: "createCollection", table: t });
+    return encodeDDL(`CREATE TABLE IF NOT EXISTS ${t.name};`, { op: "createRadiantCollection", table: t });
   }
 
   renameColumnDDL(table: string, oldName: string, newName: string, column: unknown): string {
@@ -234,7 +234,7 @@ export class MongoDBAdapter implements LucentAdapter {
     return encodeDDL(`DROP TABLE ${table};`, { op: "dropTable", table });
   }
 
-  async find(collection: string, query: QueryArgs): Promise<QueryResult> {
+  async find(collection: string, query: QueryArgs): Promise<RadiantQueryResult> {
     const { where, sort, limit = 10, page = 1, cursor } = query;
     const coll = this.collection(collection);
     let filter = await this.buildMongoWhere((where as Record<string, unknown> | undefined) ?? {}, collection);
@@ -378,8 +378,8 @@ export class MongoDBAdapter implements LucentAdapter {
     }
 
     switch (command.op) {
-      case "createCollection":
-        await this.applyCollectionDefinition(command.table);
+      case "createRadiantCollection":
+        await this.applyRadiantCollectionDefinition(command.table);
         return { ok: 1 };
       case "addColumn":
         await this.applyColumnDefinition(command.table, command.column);
@@ -404,7 +404,7 @@ export class MongoDBAdapter implements LucentAdapter {
   }
 
   private collection(name: string): any {
-    return this.db().collection(assertMongoCollectionName(name));
+    return this.db().collection(assertMongoRadiantCollectionName(name));
   }
 
   private resolveDatabaseName(options: MongoDBOptions): string {
@@ -495,10 +495,10 @@ export class MongoDBAdapter implements LucentAdapter {
 
       if (key.includes(".")) {
         const [rootField, ...rest] = key.split(".");
-        const relatedCollection = this._relationshipTargets.get(`${collection}.${rootField}`);
-        if (relatedCollection && value && typeof value === "object" && !Array.isArray(value)) {
-          const nestedWhere = await this.buildMongoWhere({ [rest.join(".")]: value }, relatedCollection);
-          const relatedDocs = await this.collection(relatedCollection)
+        const relatedRadiantCollection = this._relationshipTargets.get(`${collection}.${rootField}`);
+        if (relatedRadiantCollection && value && typeof value === "object" && !Array.isArray(value)) {
+          const nestedWhere = await this.buildMongoWhere({ [rest.join(".")]: value }, relatedRadiantCollection);
+          const relatedDocs = await this.collection(relatedRadiantCollection)
             .find(nestedWhere, { projection: { _id: 1 } })
             .toArray();
           conditions.push({
@@ -583,13 +583,13 @@ export class MongoDBAdapter implements LucentAdapter {
     return Object.keys(out).length > 0 ? out : null;
   }
 
-  private async applyCollectionDefinition(table: TableDefinition): Promise<void> {
+  private async applyRadiantCollectionDefinition(table: TableDefinition): Promise<void> {
     const exists = await this.db()
-      .listCollections({ name: table.name }, { nameOnly: false })
+      .listRadiantCollections({ name: table.name }, { nameOnly: false })
       .toArray();
-    const options = this.buildCollectionOptions(table);
+    const options = this.buildRadiantCollectionOptions(table);
     if (exists.length === 0) {
-      await this.db().createCollection(table.name, options);
+      await this.db().createRadiantCollection(table.name, options);
     } else {
       await this.db().command({
         collMod: table.name,
@@ -606,7 +606,7 @@ export class MongoDBAdapter implements LucentAdapter {
       ...nextSchema.columns.filter((existing) => existing.name !== column.name),
       column,
     ];
-    await this.applyCollectionDefinition(nextSchema);
+    await this.applyRadiantCollectionDefinition(nextSchema);
   }
 
   private async renameColumn(
@@ -627,7 +627,7 @@ export class MongoDBAdapter implements LucentAdapter {
       .concat([{ ...column, name: newName }]);
 
     await this.dropFieldIndexes(table, oldName);
-    await this.applyCollectionDefinition(nextSchema);
+    await this.applyRadiantCollectionDefinition(nextSchema);
   }
 
   private async dropColumn(table: string, column: string): Promise<void> {
@@ -636,10 +636,10 @@ export class MongoDBAdapter implements LucentAdapter {
     const nextSchema = await this.getExistingTableDefinition(table);
     nextSchema.columns = nextSchema.columns.filter((existing) => existing.name !== column);
     await this.dropFieldIndexes(table, column);
-    await this.applyCollectionDefinition(nextSchema);
+    await this.applyRadiantCollectionDefinition(nextSchema);
   }
 
-  private buildCollectionOptions(table: TableDefinition): Record<string, unknown> {
+  private buildRadiantCollectionOptions(table: TableDefinition): Record<string, unknown> {
     return {
       validator: this.buildValidator(table),
       validationLevel: "moderate",
@@ -727,7 +727,7 @@ export class MongoDBAdapter implements LucentAdapter {
 
   private async getExistingTableDefinition(table: string): Promise<TableDefinition> {
     const collections = await this.db()
-      .listCollections({ name: table }, { nameOnly: false })
+      .listRadiantCollections({ name: table }, { nameOnly: false })
       .toArray();
     const properties = collections[0]?.options?.validator?.$jsonSchema?.properties ?? {};
     const required = new Set<string>(collections[0]?.options?.validator?.$jsonSchema?.required ?? []);

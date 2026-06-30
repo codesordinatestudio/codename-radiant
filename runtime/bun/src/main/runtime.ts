@@ -5,6 +5,7 @@ import { RadiantRouter } from "./router";
 import { generateOpenAPISpec, generateScalarHTML } from "../core/openapi";
 import { MemoryCacheStore } from "../core/cache";
 import { LocalStorageProvider } from "../core/storage";
+import { CronManager } from "./cron";
 import { RadiantWebsocket } from "./websocket";
 import { RadiantSSE } from "./sse";
 import { setupMonitoring } from "../monitoring";
@@ -31,6 +32,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   public cache: CacheStore;
   public plugins: RadiantPlugin[];
   public mailer?: RadiantMailer;
+  public cronManager = new CronManager();
   private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks<any, any>>();
@@ -46,7 +48,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     this.plugins = config.plugins || [];
     this.router = new RadiantRouter();
     this.rateLimiter = new RateLimiter(this.schema, new RadiantKV());
-    if (config.email) {
+    if (this.schema.email || config.email) {
       this.mailer = createMailer({
         ...this.schema.email,
         ...config.email
@@ -301,12 +303,52 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         });
 
         // FORGOT PASSWORD
-        this.router.post(`${basePath}/forgot-password`, async (ctx) => { const req = ctx.request;
+        this.router.post(`${basePath}/forgot-password`, async (ctx) => { 
+          const req = ctx.request;
+          const data = await req.json();
+          if (!data.email) return new Response(JSON.stringify({ error: "Email is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+
+          const existing = await this.adapter.find(collection.slug, { where: { email: { eq: data.email } }, limit: 1 });
+          const user = existing.docs[0];
+
+          if (user && this.authEngine && this.mailer) {
+            const token = await this.authEngine.generatePasswordResetToken(user.id as string, collection.slug);
+            const resetUrl = this.schema.email?.resetPasswordUrl
+              ? `${this.schema.email.resetPasswordUrl}?token=${token}`
+              : `http://localhost:3000/reset-password?token=${token}`;
+            
+            await this.mailer.sendForgotPassword(user.email as string, resetUrl);
+          }
+
+          // Always return success to prevent email enumeration
           return new Response(JSON.stringify({ message: "Password reset email sent (if account exists)" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         });
 
         // RESET PASSWORD
-        this.router.post(`${basePath}/reset-password`, async (ctx) => { const req = ctx.request;
+        this.router.post(`${basePath}/reset-password`, async (ctx) => { 
+          const req = ctx.request;
+          const data = await req.json();
+          
+          if (!data.token || !data.password) {
+            return new Response(JSON.stringify({ error: "Token and new password are required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          if (!this.authEngine) return new Response(JSON.stringify({ error: "Auth engine not configured" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+
+          const verified = await this.authEngine.verifyPasswordResetToken(data.token);
+          if (!verified || verified.collection !== collection.slug) {
+            return new Response(JSON.stringify({ error: "Invalid or expired reset token" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          const hashedPassword = await Bun.password.hash(data.password, "bcrypt");
+          await this.adapter.update(collection.slug, verified.userId, { password: hashedPassword });
+
+          // Fetch the user to get their email
+          const user = await this.adapter.findById(collection.slug, verified.userId);
+          if (user && this.mailer && (user as any).email) {
+            await this.mailer.sendPasswordResetSuccess((user as any).email as string);
+          }
+
           return new Response(JSON.stringify({ message: "Password reset successfully" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         });
       }
@@ -565,6 +607,16 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     }
   }
 
+  /**
+   * Schedule a recurring cron job
+   * @param name Unique identifier for the job
+   * @param schedule Cron expression (e.g. "0 * * * *")
+   * @param handler Async function to execute on schedule
+   */
+  public cron(name: string, schedule: string, handler: (app: RadiantRuntime<TCollections>) => unknown) {
+    return this.cronManager.schedule(name, schedule, handler, this);
+  }
+
   public async fetch(req: Request): Promise<Response> {
     let ctx: RadiantRequestContext | undefined;
     try {
@@ -629,6 +681,13 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
       },
       websocket: RadiantWebsocket.handlers(),
     });
+
+    // Patch the server's stop method to gracefully tear down background jobs
+    const originalStop = server.stop.bind(server);
+    server.stop = ((closeActiveConnections?: boolean) => {
+      this.cronManager.stopAll();
+      return originalStop(closeActiveConnections);
+    }) as any;
 
     const r = "\x1b[38;2;34;211;238m"; // cyan-400
     const w = "\x1b[38;2;255;255;255m"; // white

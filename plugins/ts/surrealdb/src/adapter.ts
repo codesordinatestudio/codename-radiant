@@ -1,7 +1,7 @@
 // SurrealDB Adapter
 // Version: 0.0.4
 
-import type { LucentAdapter, QueryArgs, QueryResult, Collection } from "@codesordinatestudio/radiant-bun/core";
+import type { RadiantAdapter, QueryArgs, RadiantQueryResult, RadiantCollection } from "@codesordinatestudio/radiant-bun/core";
 interface ColumnDefinition {
   name: string;
   type: string;
@@ -74,7 +74,7 @@ export type SurrealDBOptions = {
 /**
  * SurrealDB adapter using the official SurrealDB JavaScript SDK v3.
  */
-export class SurrealDBAdapter implements LucentAdapter {
+export class SurrealDBAdapter implements RadiantAdapter {
   readonly adapterType = "surrealdb";
   readonly supportsGeneratedConstraintSQL = false;
   private _connection: Surreal | null = null;
@@ -103,7 +103,7 @@ export class SurrealDBAdapter implements LucentAdapter {
    * Register collection field names so that `normalizeRecord` can hydrate
    * fields that SurrealDB omits when their value is NONE.
    */
-  configureCollections(collections: Collection[]): void {
+  configureRadiantCollections(collections: RadiantCollection[]): void {
     for (const col of collections) {
       const names: string[] = col.fields.map((f) => f.name);
       if (col.timestamps) names.push("createdAt", "updatedAt");
@@ -114,8 +114,8 @@ export class SurrealDBAdapter implements LucentAdapter {
     }
   }
 
-  registerCollections(collections: Collection[]): void {
-    this.configureCollections(collections);
+  registerRadiantCollections(collections: RadiantCollection[]): void {
+    this.configureRadiantCollections(collections);
   }
 
   async connect(): Promise<void> {
@@ -234,7 +234,7 @@ export class SurrealDBAdapter implements LucentAdapter {
     return `REMOVE TABLE ${surrealIdentifier(table)};`;
   }
 
-  async find(collection: string, query: QueryArgs): Promise<QueryResult> {
+  async find(collection: string, query: QueryArgs): Promise<RadiantQueryResult> {
     const { where, sort, limit = 10, page = 1, cursor } = query;
 
     let whereSql = "";
@@ -298,7 +298,7 @@ export class SurrealDBAdapter implements LucentAdapter {
       if (hasNextPage && resultDocs.length > 0) {
         const lastDoc = resultDocs[resultDocs.length - 1];
         nextCursor = Buffer.from(
-          JSON.stringify({ id: lastDoc.id, sortValue: sortField !== "id" ? lastDoc[sortField] : undefined }),
+          JSON.stringify({ id: lastDoc?.id, sortValue: sortField !== "id" ? lastDoc[sortField] : undefined }),
         ).toString("base64url");
       }
 

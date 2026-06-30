@@ -9,13 +9,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup"
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun && tsc --emitDeclarationOnly"
   },
   "dependencies": {
     "@codesordinatestudio/radiant-bun": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
     "typescript": "^6.0.3"
   },
   "sideEffects": false
