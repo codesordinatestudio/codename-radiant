@@ -3,7 +3,7 @@
 //
 // Provides a unified email API with externally supplied transports.
 
-import type { EmailConfig, RadiantEmailSendOptions, RadiantEmailTransport } from "./types";
+import type { EmailConfig, RadiantEmailSendOptions, RadiantEmailTransport, EmailTemplates } from "./types";
 
 export type { RadiantEmailSendOptions, RadiantEmailTransport };
 
@@ -16,11 +16,13 @@ export class RadiantMailer {
   private appName: string;
   private resetTokenExpiryMinutes: number;
   private from: string;
+  private templates?: EmailTemplates;
 
   constructor(config?: EmailConfig, transport?: RadiantEmailTransport) {
     this.appName = config?.appName ?? Bun.env.SMTP_APP_NAME ?? "Radiant App";
     this.resetTokenExpiryMinutes = config?.resetTokenExpiryMinutes ?? 60;
     this.from = config?.from ?? Bun.env.SMTP_FROM ?? `"Radiant App" <no-reply@radiant.dev>`;
+    this.templates = config?.templates;
 
     const resolvedTransport = transport ?? config?.transport;
     if (!resolvedTransport) {
@@ -58,11 +60,13 @@ export class RadiantMailer {
   async sendWelcome(to: string, opts: { appName?: string } = {}): Promise<void> {
     const appName = opts.appName ?? this.appName;
 
+    const custom = this.templates?.welcome?.({ to, appName });
+    
     await this.send({
       to,
-      subject: `Welcome to ${appName}`,
-      html: welcomeTemplate({ to, appName }),
-      text: `Welcome to ${appName}! Your account has been created successfully.`,
+      subject: custom?.subject ?? `Welcome to ${appName}`,
+      html: custom?.html ?? welcomeTemplate({ to, appName }),
+      text: custom?.text ?? `Welcome to ${appName}! Your account has been created successfully.`,
     });
   }
 
@@ -82,11 +86,13 @@ export class RadiantMailer {
     const appName = opts.appName ?? this.appName;
     const expiresInMinutes = opts.expiresInMinutes ?? this.resetTokenExpiryMinutes;
 
+    const custom = this.templates?.forgotPassword?.({ to, resetUrl, appName, expiresInMinutes });
+
     await this.send({
       to,
-      subject: `Reset your ${appName} password`,
-      html: forgotPasswordTemplate({ to, resetUrl, appName, expiresInMinutes }),
-      text: `You requested a password reset for ${appName}.\n\nClick the link below to reset your password (valid for ${expiresInMinutes} minutes):\n\n${resetUrl}\n\nIf you didn't request a reset, you can safely ignore this email.`,
+      subject: custom?.subject ?? `Reset your ${appName} password`,
+      html: custom?.html ?? forgotPasswordTemplate({ to, resetUrl, appName, expiresInMinutes }),
+      text: custom?.text ?? `You requested a password reset for ${appName}.\n\nClick the link below to reset your password (valid for ${expiresInMinutes} minutes):\n\n${resetUrl}\n\nIf you didn't request a reset, you can safely ignore this email.`,
     });
   }
 
@@ -96,11 +102,13 @@ export class RadiantMailer {
   async sendPasswordResetSuccess(to: string, opts: { appName?: string } = {}): Promise<void> {
     const appName = opts.appName ?? this.appName;
 
+    const custom = this.templates?.passwordResetSuccess?.({ to, appName });
+
     await this.send({
       to,
-      subject: `Your ${appName} password has been reset`,
-      html: passwordResetSuccessTemplate({ to, appName }),
-      text: `Your ${appName} password has been successfully reset. If you did not perform this action, contact support immediately.`,
+      subject: custom?.subject ?? `Your ${appName} password has been reset`,
+      html: custom?.html ?? passwordResetSuccessTemplate({ to, appName }),
+      text: custom?.text ?? `Your ${appName} password has been successfully reset. If you did not perform this action, contact support immediately.`,
     });
   }
 
@@ -115,11 +123,13 @@ export class RadiantMailer {
   async sendVerificationEmail(to: string, verifyUrl: string, opts: { appName?: string } = {}): Promise<void> {
     const appName = opts.appName ?? this.appName;
 
+    const custom = this.templates?.verifyEmail?.({ to, verifyUrl, appName });
+
     await this.send({
       to,
-      subject: `Verify your ${appName} email`,
-      html: verifyEmailTemplate({ to, verifyUrl, appName }),
-      text: `Welcome to ${appName}! Please verify your email address by clicking the link below:\n\n${verifyUrl}\n\nIf you didn't create an account, you can safely ignore this email.`,
+      subject: custom?.subject ?? `Verify your ${appName} email`,
+      html: custom?.html ?? verifyEmailTemplate({ to, verifyUrl, appName }),
+      text: custom?.text ?? `Welcome to ${appName}! Please verify your email address by clicking the link below:\n\n${verifyUrl}\n\nIf you didn't create an account, you can safely ignore this email.`,
     });
   }
 }

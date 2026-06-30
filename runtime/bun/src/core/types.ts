@@ -137,6 +137,13 @@ export interface RadiantEmailTransport {
   verify(): Promise<boolean>;
 }
 
+export interface EmailTemplates {
+  welcome?: (data: { to: string; appName: string }) => { subject?: string; html: string; text?: string };
+  forgotPassword?: (data: { to: string; resetUrl: string; appName: string; expiresInMinutes: number }) => { subject?: string; html: string; text?: string };
+  passwordResetSuccess?: (data: { to: string; appName: string }) => { subject?: string; html: string; text?: string };
+  verifyEmail?: (data: { to: string; verifyUrl: string; appName: string }) => { subject?: string; html: string; text?: string };
+}
+
 export interface EmailConfig {
   from?: string;
   appName?: string;
@@ -144,4 +151,5 @@ export interface EmailConfig {
   resetPasswordUrl?: string;
   verifyEmailUrl?: string;
   transport?: RadiantEmailTransport;
+  templates?: EmailTemplates;
 }

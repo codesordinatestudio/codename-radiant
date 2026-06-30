@@ -38,4 +38,34 @@ describe("Email Integration", () => {
     // The method returns void on success. If it didn't throw, it passed!
     expect(true).toBe(true);
   });
+
+  test("Should use custom templates when provided", async () => {
+    let sentSubject = "";
+    let sentHtml = "";
+
+    const mockTransport = {
+      send: async (options: any) => {
+        sentSubject = options.subject;
+        sentHtml = options.html;
+        return { messageId: "123" };
+      },
+      verify: async () => true,
+    };
+
+    const mailer = createMailer({
+      transport: mockTransport,
+      from: "test@lucent.dev",
+      templates: {
+        forgotPassword: ({ to, resetUrl }) => ({
+          subject: "Custom Reset",
+          html: `<p>Custom html for ${to} ${resetUrl}</p>`
+        })
+      }
+    });
+
+    await mailer.sendForgotPassword("user@example.com", "https://reset.com", { appName: "App" });
+
+    expect(sentSubject).toBe("Custom Reset");
+    expect(sentHtml).toBe("<p>Custom html for user@example.com https://reset.com</p>");
+  });
 });
