@@ -15,3 +15,4 @@ bun link @codesordinatestudio/radiant-plugin-postgres
 ```
 
 > **Note:** To install them as normal dependencies later, replace `bun link` with `bun add`.
+bun link @codesordinatestudio/radiant-plugin-durable-streams

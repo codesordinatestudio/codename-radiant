@@ -58,7 +58,7 @@ describe("CLI Scaffold - TS Project", () => {
     await scaffoldTsProject(testDir);
 
     const appTs = readFileSync(join(testDir, "src", "app.ts"), "utf-8");
-    expect(appTs).toContain('import { redis } from "@codesordinatestudio/radiant-plugin-redis"');
+    expect(appTs).toContain('import { redis } from "@codesordinatestudio/radiant-plugin-redis-db"');
     expect(appTs).toContain("adapter: redis({ url: process.env.DATABASE_URL! })");
   });
 

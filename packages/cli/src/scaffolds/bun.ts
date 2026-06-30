@@ -77,7 +77,7 @@ export async function scaffoldTsProject(rootDir: string) {
     if (useSqlite) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-sqlite"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-sqlite" : "latest";
     if (usePostgres) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-postgres"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-postgres" : "latest";
     if (useMongo) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-mongodb"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-mongodb" : "latest";
-    if (useRedis) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-redis"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-redis" : "latest";
+    if (useRedis) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-redis-db"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-redis" : "latest";
     if (useSurreal) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-surrealdb"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-surrealdb" : "latest";
     writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
 
@@ -313,7 +313,7 @@ export async function scaffoldTsProject(rootDir: string) {
       imports += `import { mongodb } from "@codesordinatestudio/radiant-plugin-mongodb";\n`;
       adapterConfig = `  adapter: mongodb({ url: process.env.DATABASE_URL! })`;
     } else if (useRedis) {
-      imports += `import { redis } from "@codesordinatestudio/radiant-plugin-redis";\n`;
+      imports += `import { redis } from "@codesordinatestudio/radiant-plugin-redis-db";\n`;
       adapterConfig = `  adapter: redis({ url: process.env.DATABASE_URL! })`;
     } else if (useSurreal) {
       imports += `import { surrealdb } from "@codesordinatestudio/radiant-plugin-surrealdb";\n`;

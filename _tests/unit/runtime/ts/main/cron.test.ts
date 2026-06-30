@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { RadiantRuntime } from "../../runtime/bun/src/main/runtime";
-import type { RadiantAdapter } from "../../runtime/bun/src/core";
+import { RadiantRuntime } from "../../../../../runtime/bun/src/main/runtime";
+import type { RadiantAdapter } from "../../../../../runtime/bun/src/core";
 
 // Minimal mock adapter
 class MockAdapter implements RadiantAdapter {
@@ -18,49 +18,48 @@ class MockAdapter implements RadiantAdapter {
 describe("Cron Jobs & Task Scheduling", () => {
   const schema: any = { collections: [] };
 
-  test("Should register and manage a cron job", () => {
+  test("Should register and manage a cron job", async () => {
     const app = new RadiantRuntime(schema, { adapter: new MockAdapter() });
     
     // Register a cron job
-    app.cron("cleanup-job", "* * * * *", (runtime) => {
+    await app.cron("cleanup-job", "* * * * *", (runtime: any) => {
       // do something
     });
 
-    const activeJobs = app.cronManager.list();
+    const activeJobs = await app.cronManager.list();
     expect(activeJobs).toContain("cleanup-job");
     expect(activeJobs.length).toBe(1);
 
     // Stop it explicitly
-    const stopped = app.cronManager.stop("cleanup-job");
+    const stopped = await app.cronManager.stop("cleanup-job");
     expect(stopped).toBe(true);
-    expect(app.cronManager.list().length).toBe(0);
+    expect((await app.cronManager.list()).length).toBe(0);
   });
 
-  test("Should prevent duplicate cron job names", () => {
+  test("Should prevent duplicate cron job names", async () => {
     const app = new RadiantRuntime(schema, { adapter: new MockAdapter() });
     
-    app.cron("unique-job", "* * * * *", () => {});
+    await app.cron("unique-job", "* * * * *", () => {});
     
-    expect(() => {
-      app.cron("unique-job", "* * * * *", () => {});
-    }).toThrow(/already registered/);
+    await expect(app.cron("unique-job", "* * * * *", () => {})).rejects.toThrow(/already registered/);
 
-    app.cronManager.stopAll();
+    await app.cronManager.stopAll();
   });
 
   test("Should stop all cron jobs when server stops", async () => {
     const app = new RadiantRuntime(schema, { adapter: new MockAdapter() });
     
-    app.cron("job-1", "* * * * *", () => {});
-    app.cron("job-2", "* * * * *", () => {});
+    await app.cron("job-1", "* * * * *", () => {});
+    await app.cron("job-2", "* * * * *", () => {});
     
-    expect(app.cronManager.list().length).toBe(2);
+    const list = await app.cronManager.list();
+    expect(list.length).toBe(2);
 
     const server = await app.start({ port: 0 }); // start on random port
     
     // When the server is stopped, jobs should be cleared
     server.stop();
     
-    expect(app.cronManager.list().length).toBe(0);
+    const cL = await app.cronManager.list(); expect(cL.length).toBe(0);
   });
 });

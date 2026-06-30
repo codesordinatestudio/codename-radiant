@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { SSEManager, createBunSSERoute, RadiantSSE } from "../../../../runtime/bun/src/main/sse";
+import { SSEManager, createBunSSERoute, RadiantSSE } from "../../../../../runtime/bun/src/main/sse";
 
 describe("main/sse", () => {
   let manager: SSEManager;
@@ -12,7 +12,9 @@ describe("main/sse", () => {
     let closed = false;
     const mockController = {
       enqueue: () => {},
-      close: () => { closed = true; }
+      close: () => {
+        closed = true;
+      },
     } as any;
 
     const conn = {
@@ -21,7 +23,7 @@ describe("main/sse", () => {
       channels: new Set<string>(),
       request: new Request("http://localhost"),
       user: null,
-      connectedAt: Date.now()
+      connectedAt: Date.now(),
     };
 
     manager.register(conn);
@@ -33,7 +35,7 @@ describe("main/sse", () => {
 
     manager.unsubscribe("client-1", "news");
     expect(manager.channelCount).toBe(0);
-    
+
     manager.remove("client-1");
     expect(manager.connectionCount).toBe(0);
   });
@@ -41,8 +43,10 @@ describe("main/sse", () => {
   test("broadcasts correctly format SSE payloads", () => {
     let enqueued: Uint8Array | null = null;
     const mockController = {
-      enqueue: (data: Uint8Array) => { enqueued = data; },
-      close: () => {}
+      enqueue: (data: Uint8Array) => {
+        enqueued = data;
+      },
+      close: () => {},
     } as any;
 
     const conn = {
@@ -51,7 +55,7 @@ describe("main/sse", () => {
       channels: new Set<string>(),
       request: new Request("http://localhost"),
       user: null,
-      connectedAt: Date.now()
+      connectedAt: Date.now(),
     };
 
     manager.register(conn);
@@ -82,7 +86,7 @@ describe("main/sse", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("text/event-stream");
     expect(res.body).toBeInstanceOf(ReadableStream);
-    
+
     // We would need to read the stream to verify connection, but Bun's ReadableStream works.
     // Ensure the stream is abortable
     const reader = res.body!.getReader();

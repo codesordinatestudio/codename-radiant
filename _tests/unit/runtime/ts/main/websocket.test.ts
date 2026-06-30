@@ -1,5 +1,10 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { WebSocketManager, RadiantWebsocket, createWebSocketHandler, createBunWebSocketRoute } from "../../../../runtime/bun/src/main/websocket";
+import {
+  WebSocketManager,
+  RadiantWebsocket,
+  createWebSocketHandler,
+  createBunWebSocketRoute,
+} from "../../../../../runtime/bun/src/main/websocket";
 
 describe("main/websocket", () => {
   let manager: WebSocketManager;
@@ -15,7 +20,7 @@ describe("main/websocket", () => {
   test("registers and removes connections", () => {
     const ws = { id: "client-1", data: {}, send: () => 0 };
     manager.register(ws);
-    
+
     expect(manager.connectionCount).toBe(1);
     expect(manager.getStats().connections).toBe(1);
 
@@ -46,10 +51,24 @@ describe("main/websocket", () => {
   test("broadcasts to room members except excluded", () => {
     let c1Received = false;
     let c2Received = false;
-    
-    const ws1 = { id: "c1", data: {}, send: () => { c1Received = true; return 1; } };
-    const ws2 = { id: "c2", data: {}, send: () => { c2Received = true; return 1; } };
-    
+
+    const ws1 = {
+      id: "c1",
+      data: {},
+      send: () => {
+        c1Received = true;
+        return 1;
+      },
+    };
+    const ws2 = {
+      id: "c2",
+      data: {},
+      send: () => {
+        c2Received = true;
+        return 1;
+      },
+    };
+
     manager.register(ws1);
     manager.register(ws2);
     manager.joinRoom("c1", "chat");
@@ -64,13 +83,13 @@ describe("main/websocket", () => {
   test("creates bun route that handles upgrades", async () => {
     const route = createBunWebSocketRoute({ path: "/ws" });
     const req = new Request("http://localhost/ws");
-    
+
     let upgraded = false;
     const mockServer = {
       upgrade(req: Request, options: any) {
         upgraded = true;
         return true;
-      }
+      },
     };
 
     const result = await route(req, mockServer);
@@ -81,20 +100,23 @@ describe("main/websocket", () => {
   test("handles messages and internal routing", async () => {
     const handler = createWebSocketHandler();
     let sentMessage = "";
-    
+
     const rawWs = {
       data: { id: "c1", handler },
-      send: (msg: string) => { sentMessage = msg; return 1; }
+      send: (msg: string) => {
+        sentMessage = msg;
+        return 1;
+      },
     } as any;
 
     // Simulate open
     handler.open!(rawWs);
     expect(sentMessage).toContain("connected");
-    
+
     // Simulate join
     await handler.message!(rawWs, JSON.stringify({ type: "join", room: "general" }));
     expect(sentMessage).toContain("joined");
-    
+
     // Simulate ping
     await handler.message!(rawWs, JSON.stringify({ type: "ping" }));
     expect(sentMessage).toContain("pong");

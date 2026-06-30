@@ -9,8 +9,8 @@ import {
   file,
   toResponse,
   routeErrorToResponse,
-  UPGRADED
-} from "../../../../runtime/bun/src/core/response";
+  UPGRADED,
+} from "../../../../../runtime/bun/src/core/response";
 
 describe("core/response", () => {
   describe("json()", () => {
@@ -63,7 +63,7 @@ describe("core/response", () => {
       expect(res.status).toBe(500);
       expect(await res.json()).toEqual({
         error: "INTERNAL_ERROR",
-        message: "Something went wrong"
+        message: "Something went wrong",
       });
     });
 
@@ -72,7 +72,7 @@ describe("core/response", () => {
       expect(res.status).toBe(403);
       expect(await res.json()).toEqual({
         error: "FORBIDDEN",
-        message: "Unauthorized access"
+        message: "Unauthorized access",
       });
     });
   });
@@ -83,7 +83,7 @@ describe("core/response", () => {
       expect(res.status).toBe(404);
       expect(await res.json()).toEqual({
         error: "NOT_FOUND",
-        message: "Not found"
+        message: "Not found",
       });
     });
   });
@@ -95,7 +95,7 @@ describe("core/response", () => {
       expect(res.headers.get("Allow")).toBe("GET, POST");
       expect(await res.json()).toEqual({
         error: "METHOD_NOT_ALLOWED",
-        message: "Method not allowed"
+        message: "Method not allowed",
       });
     });
   });
@@ -151,7 +151,7 @@ describe("core/response", () => {
       expect(res.status).toBe(500);
       expect(await res.json()).toEqual({
         error: "INTERNAL_ERROR",
-        message: "Broken code"
+        message: "Broken code",
       });
     });
 
@@ -167,7 +167,7 @@ describe("core/response", () => {
       expect(res.status).toBe(500);
       expect(await res.json()).toMatchObject({
         error: "INTERNAL_ERROR",
-        message: "[object Object]"
+        message: "[object Object]",
       });
     });
   });

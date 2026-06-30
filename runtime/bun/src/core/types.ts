@@ -72,9 +72,10 @@ export interface CollectionConfig {
   slug: string;
   auth?: boolean;
   realtime?: {
-    ws?: boolean;
-    sse?: boolean;
-    durableStream?: boolean;
+    secure?: boolean;
+    ws?: boolean | string[];
+    sse?: boolean | string[];
+    durableStream?: boolean | string[];
   };
   cache?: {
     ttl?: string | number;

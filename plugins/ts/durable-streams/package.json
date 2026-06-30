@@ -1,0 +1,22 @@
+{
+  "name": "@codesordinatestudio/radiant-plugin-durable-streams",
+  "version": "0.13.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun --external @durable-streams/client && tsc --emitDeclarationOnly"
+  },
+  "dependencies": {
+    "@codesordinatestudio/radiant-bun": "workspace:*",
+    "@durable-streams/client": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "sideEffects": false
+}

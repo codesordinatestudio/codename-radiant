@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, setSystemTime } from "bun:test";
-import { MemoryCacheStore } from "../../../../runtime/bun/src/core/cache";
+import { MemoryCacheStore } from "../../../../../runtime/bun/src/core/cache";
 
 describe("core/cache", () => {
   let cache: MemoryCacheStore;
@@ -43,7 +43,7 @@ describe("core/cache", () => {
     // Advance time past 60 seconds (70 seconds total)
     setSystemTime(new Date(now.getTime() + 70 * 1000));
     value = await cache.get("token:123");
-    
+
     // Should return null and evict the item
     expect(value).toBeNull();
   });

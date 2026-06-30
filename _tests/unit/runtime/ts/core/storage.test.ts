@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { LocalStorageProvider } from "../../../../runtime/bun/src/core/storage";
+import { LocalStorageProvider } from "../../../../../runtime/bun/src/core/storage";
 
 const TEST_DIR = path.join(process.cwd(), ".radiant_test_uploads");
 
@@ -57,7 +57,7 @@ describe("core/storage", () => {
   test("deletes an existing file", async () => {
     const file = new File(["delete me"], "delete.txt", { type: "text/plain" });
     const uploaded = await storage.saveFile(file);
-    
+
     const savedPath = path.join(TEST_DIR, uploaded.filename);
     expect(fs.existsSync(savedPath)).toBe(true);
 

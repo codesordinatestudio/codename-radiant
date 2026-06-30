@@ -1,4 +1,5 @@
 import type { RadiantAST, RadiantAdapter, StorageProvider, CacheStore, RadiantPlugin } from "../core";
+import { type DurableStreamStore, MemoryStreamStore } from "../core/stream";
 import type { AccessRules, AuthUser, RadiantRequestContext } from "./access";
 import type { Hooks } from "./hooks";
 import { RadiantRouter } from "./router";
@@ -21,6 +22,7 @@ export interface RadiantConfig {
   cache?: CacheStore;
   plugins?: RadiantPlugin[];
   email?: import("../core/types").EmailConfig;
+  streamStore?: DurableStreamStore;
 }
 
 export class RadiantRuntime<TCollections extends Record<string, any> = Record<string, any>> {
@@ -32,6 +34,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   public cache: CacheStore;
   public plugins: RadiantPlugin[];
   public mailer?: RadiantMailer;
+  public streamStore: DurableStreamStore;
   public cronManager = new CronManager();
   private authEngine?: JWTAuthenticator;
 
@@ -45,6 +48,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     const prefix = this.schema.core?.api?.prefix || '/api';
     this.storage = config.storage || new LocalStorageProvider('uploads', prefix);
     this.cache = config.cache || new MemoryCacheStore();
+    this.streamStore = config.streamStore || new MemoryStreamStore();
     this.plugins = config.plugins || [];
     this.router = new RadiantRouter();
     this.rateLimiter = new RateLimiter(this.schema, new RadiantKV());
@@ -196,10 +200,41 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     });
 
     // Mount WS and SSE routes
-    const isRealtimeGlobal = this.schema.collections.some(c => c.realtime);
+    const isRealtimeGlobal = this.schema.collections.some(c => c.realtime?.ws || c.realtime?.sse || c.realtime?.durableStream);
     if (isRealtimeGlobal) {
-      this.router.get(`/ws`, async (ctx) => RadiantWebsocket.route({ path: `${prefix}/ws` })(ctx.request as any, undefined));
-      this.router.get(`/sse`, async (ctx) => RadiantSSE.route({ path: `${prefix}/sse` })(ctx.request as any));
+      const checkSecureChannel = async (channel: string, request: Request, user: import("./access").AuthUser | null) => {
+        const collection = this.schema.collections.find(c => c.slug === channel);
+        if (!collection || !collection.realtime?.secure) return true;
+        try {
+          const ctx: import("./access").RadiantRequestContext = {
+            request,
+            user,
+            radiant: this
+          };
+          await this.checkAccess(collection.slug, "read", ctx);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const onSubscribe = async (info: { request: Request; user: import("./access").AuthUser | null; channel: string }) => {
+        return checkSecureChannel(info.channel, info.request, info.user);
+      };
+      
+      const onJoinRoom = async (room: string, ws: import("./websocket").RadiantServerWebSocket) => {
+        const req = (ws.data as any).request as Request;
+        const user = (ws.data as any).user as import("./access").AuthUser | null;
+        if (!req) {
+           const collection = this.schema.collections.find(c => c.slug === room);
+           if (collection?.realtime?.secure) return false;
+           return true;
+        }
+        return checkSecureChannel(room, req, user);
+      };
+      
+      this.router.get(`/ws`, async (ctx) => RadiantWebsocket.route({ path: `${prefix}/ws`, onJoinRoom })(ctx.request as any, undefined));
+      this.router.get(`/sse`, async (ctx) => RadiantSSE.route({ path: `${prefix}/sse`, onSubscribe })(ctx.request as any));
     }
 
     // Mount Global Upload Route
@@ -373,6 +408,17 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
       });
 
+      // GET STREAM
+      if (collection.realtime?.durableStream) {
+        this.router.get(`${basePath}/stream`, async (ctx) => {
+          await this.checkAccess(collection.slug, "read", ctx);
+          const url = new URL(ctx.request.url);
+          const lastEventId = url.searchParams.get("lastEventId") || undefined;
+          const events = await this.streamStore.read(collection.slug, lastEventId);
+          return new Response(JSON.stringify(events), { headers: { "Content-Type": "application/json" }});
+        });
+      }
+
       // GET ONE
       this.router.get(`${basePath}/:id`, async (ctx) => { const req = ctx.request; const params = ctx.params as any;
         await this.checkAccess(collection.slug, "read", ctx);
@@ -404,10 +450,21 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
 
       const broadcastChange = (action: string, data: any) => {
         if (!isRealtime) return;
+        const r = collection.realtime;
         const payload = { event: `${collection.slug}:${action}`, data };
-        if (collection.realtime?.ws) RadiantWebsocket.broadcastAll(payload);
-        if (collection.realtime?.sse) RadiantSSE.broadcastAll(payload);
+        
+        const isAllowed = (setting?: boolean | string[]) => 
+          setting === true || (Array.isArray(setting) && setting.includes(action));
+
+        if (isAllowed(r?.ws)) RadiantWebsocket.broadcastToRoom(collection.slug, payload);
+        if (isAllowed(r?.sse)) RadiantSSE.broadcastToChannel(collection.slug, payload);
+        
+        if (isAllowed(r?.durableStream) && this.streamStore) {
+          this.streamStore.publish(collection.slug, action, data).catch(console.error);
+        }
       };
+
+
 
       // POST CREATE
       this.router.post(basePath, async (ctx) => { const req = ctx.request;
@@ -656,6 +713,17 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   async start(options: { port?: number } = {}) {
+    if (process.env.NODE_ENV === "production") {
+      if (this.cache.constructor.name === "MemoryCacheStore") {
+        console.error(
+          "\\n\\x1b[41m\\x1b[37m[CRITICAL ERROR] PRODUCTION CACHE GUARDRAIL\\x1b[0m",
+          "\\nMemoryCacheStore is configured for a production environment. This is local to the current process and will fail in multi-server deployments.",
+          "\\nPlease configure a distributed cache using @codesordinatestudio/radiant-plugin-redis-db for rate limiters and caching.\\n"
+        );
+        process.exit(1);
+      }
+    }
+
     // 1. Run Plugin Initializations
     for (const plugin of this.plugins) {
       if (plugin.onInit) {

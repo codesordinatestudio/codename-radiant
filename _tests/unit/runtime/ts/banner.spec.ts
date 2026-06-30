@@ -1,5 +1,5 @@
 import { describe, test, expect, spyOn, afterEach, beforeEach } from 'bun:test';
-import { RadiantRuntime } from '../../../runtime/bun/src/main/runtime';
+import { RadiantRuntime } from '../../../../runtime/bun/src/main/runtime';
 
 describe('RadiantRuntime Banner', () => {
   let mockAdapter: any;
@@ -39,7 +39,7 @@ describe('RadiantRuntime Banner', () => {
       expect(logSpy).toHaveBeenCalled();
       
       // Grab the last log call
-      const lastCallArg = logSpy.mock.calls[logSpy.mock.calls.length - 1][0];
+      const lastCallArg = logSpy.mock.calls[logSpy.mock.calls.length - 1]![0];
       
       // Verify it contains the ASCII art "Radiant Engine Online"
       expect(lastCallArg).toContain('Radiant Engine Online');

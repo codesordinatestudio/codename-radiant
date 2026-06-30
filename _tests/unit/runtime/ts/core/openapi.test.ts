@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { generateScalarHTML, generateOpenAPISpec } from "../../../../runtime/bun/src/core/openapi";
-import type { RadiantAST, CollectionConfig } from "../../../../runtime/bun/src/core/types";
+import { generateScalarHTML, generateOpenAPISpec } from "../../../../../runtime/bun/src/core/openapi";
+import type { RadiantAST, CollectionConfig } from "../../../../../runtime/bun/src/core/types";
 
 describe("core/openapi", () => {
   describe("generateScalarHTML()", () => {
@@ -8,7 +8,7 @@ describe("core/openapi", () => {
       const html = generateScalarHTML("/api/spec.json", "My API");
       expect(html).toContain("My API - API Reference");
       expect(html).toContain('data-url="/api/spec.json"');
-      expect(html).toContain("data-theme=\"purple\"");
+      expect(html).toContain('data-theme="purple"');
     });
   });
 
@@ -20,8 +20,8 @@ describe("core/openapi", () => {
         { name: "name", type: "string", optional: false },
         { name: "age", type: "number", optional: true },
         { name: "email", type: "email", optional: false },
-        { name: "status", type: "string", values: ["active", "inactive"], default: "active", optional: false }
-      ]
+        { name: "status", type: "string", values: ["active", "inactive"], default: "active", optional: false },
+      ],
     };
 
     const mockAuthCollection: CollectionConfig = {
@@ -30,27 +30,23 @@ describe("core/openapi", () => {
       fields: [
         { name: "email", type: "email", optional: false },
         { name: "password", type: "password", optional: false },
-        { name: "level", type: "number", optional: true }
-      ]
+        { name: "level", type: "number", optional: true },
+      ],
     };
 
     const mockAst: RadiantAST = {
-      global: {
-        env: [],
-        config: { apiPrefix: "/api" },
-        security: {},
-        monitoring: {}
-      },
+      core: { api: { prefix: "/api" } },
+      security: {},
       collections: [mockCollection],
       globals: [
         {
           slug: "website",
           fields: [
             { name: "title", type: "string", optional: false },
-            { name: "description", type: "string", optional: true }
-          ]
-        }
-      ]
+            { name: "description", type: "string", optional: true },
+          ],
+        },
+      ],
     };
 
     test("generates basic OpenAPI document structure", () => {
@@ -97,8 +93,8 @@ describe("core/openapi", () => {
 
     test("hides passwords from output schemas but requires them in input", () => {
       const authAst: RadiantAST = {
-        global: mockAst.global,
-        collections: [mockAuthCollection]
+        core: mockAst.core,
+        collections: [mockAuthCollection],
       };
 
       const spec = generateOpenAPISpec(authAst, "http://localhost", "/api");
@@ -106,7 +102,7 @@ describe("core/openapi", () => {
 
       // Output schema shouldn't have password
       expect(schemas.Admins.properties.password).toBeUndefined();
-      
+
       // Input schema should have password
       expect(schemas.AdminsInput.properties.password).toBeDefined();
       expect(schemas.AdminsInput.properties.password.format).toBe("password");
@@ -114,8 +110,8 @@ describe("core/openapi", () => {
 
     test("generates auth endpoints if collection has auth: true", () => {
       const authAst: RadiantAST = {
-        global: mockAst.global,
-        collections: [mockAuthCollection]
+        core: mockAst.core,
+        collections: [mockAuthCollection],
       };
 
       const spec = generateOpenAPISpec(authAst, "http://localhost", "/api");
@@ -154,7 +150,7 @@ describe("core/openapi", () => {
       expect(paths[globalPath].get).toBeDefined();
       expect(paths[globalPath].post).toBeDefined();
       expect(paths[globalPath].patch).toBeDefined();
-      
+
       // Global endpoints should use the correct tags
       expect(paths[globalPath].get.tags).toEqual(["Globals"]);
     });
@@ -170,32 +166,32 @@ describe("core/openapi", () => {
             hooks: {
               detail: {
                 summary: "Say hello",
-                tags: ["Custom Tag"]
+                tags: ["Custom Tag"],
               },
               body: Type.Object({
-                name: Type.String()
+                name: Type.String(),
               }),
               query: Type.Object({
-                shout: Type.Optional(Type.Boolean())
+                shout: Type.Optional(Type.Boolean()),
               }),
               response: {
                 200: Type.Object({
-                  message: Type.String()
+                  message: Type.String(),
                 }),
                 400: Type.Object({
-                  error: Type.String()
-                })
-              }
-            }
-          }
-        ]
+                  error: Type.String(),
+                }),
+              },
+            },
+          },
+        ],
       };
 
       const spec = generateOpenAPISpec(mockAst, "http://localhost", "/api", appRoutes);
       const customPath = spec.paths["/api/custom/hello"];
       expect(customPath).toBeDefined();
       expect(customPath.post).toBeDefined();
-      
+
       const op = customPath.post;
       expect(op.summary).toBe("Say hello");
       expect(op.tags).toEqual(["Custom Tag"]);
@@ -227,4 +223,3 @@ describe("core/openapi", () => {
     });
   });
 });
-

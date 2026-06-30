@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
-import { RadiantRuntime } from '../../../runtime/bun/src/main/runtime';
-import type { RadiantAdapter } from '../../../runtime/bun/src/core';
+import { RadiantRuntime } from '../../../../runtime/bun/src/main/runtime';
+import type { RadiantAdapter } from '../../../../runtime/bun/src/core';
 
 describe('RadiantRuntime', () => {
   let mockAdapter: RadiantAdapter;
@@ -394,7 +394,7 @@ describe('RadiantRuntime', () => {
 
     test('Hooks intercept and modify payload', async () => {
       runtime.hooks('posts', {
-        beforeCreate: async ({ data }) => {
+        beforeCreate: async ({ data }: { data: any }) => {
           return { ...data, modified: true };
         }
       });

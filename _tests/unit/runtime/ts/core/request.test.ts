@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { parseQuery, createRouteContext } from "../../../../runtime/bun/src/core/request";
-import type { RadiantRuntime } from "../../../../runtime/bun/src/main/runtime";
-import type { AuthUser } from "../../../../runtime/bun/src/main/access";
+import { parseQuery, createRouteContext } from "../../../../../runtime/bun/src/core/request";
+import type { RadiantRuntime } from "../../../../../runtime/bun/src/main/runtime";
+import type { AuthUser } from "../../../../../runtime/bun/src/main/access";
 
 describe("core/request", () => {
   describe("parseQuery()", () => {
@@ -21,7 +21,7 @@ describe("core/request", () => {
       const search = new URLSearchParams("?user[name]=John&user[age]=30");
       const query = parseQuery(search);
       expect(query).toEqual({
-        user: { name: "John", age: "30" }
+        user: { name: "John", age: "30" },
       });
     });
 
@@ -29,7 +29,7 @@ describe("core/request", () => {
       const search = new URLSearchParams("?a[b][c]=1&a[b][d]=2");
       const query = parseQuery(search);
       expect(query).toEqual({
-        a: { b: { c: "1", d: "2" } }
+        a: { b: { c: "1", d: "2" } },
       });
     });
 
@@ -37,7 +37,7 @@ describe("core/request", () => {
       const search = new URLSearchParams("?items[0]=a&items[1]=b");
       const query = parseQuery(search);
       expect(query).toEqual({
-        items: ["a", "b"] // since indices are numbers, parser logic creates an array or object?
+        items: ["a", "b"], // since indices are numbers, parser logic creates an array or object?
       });
     });
 
@@ -45,7 +45,7 @@ describe("core/request", () => {
       const search = new URLSearchParams("?filter[tags]=a&filter[tags]=b");
       const query = parseQuery(search);
       expect(query).toEqual({
-        filter: { tags: ["a", "b"] }
+        filter: { tags: ["a", "b"] },
       });
     });
   });
@@ -54,7 +54,7 @@ describe("core/request", () => {
     test("creates a properly structured context", () => {
       const req = new Request("http://localhost:3000/api/users?sort=desc");
       const params = { id: "123" };
-      const user: AuthUser = { id: "user-1", email: "test@test.com", collection: "users" };
+      const user: AuthUser = { id: "user-1", email: "test@test.com", collection: "users", role: "admin" };
       const body = { name: "Test" };
       const radiantMock = {} as RadiantRuntime;
       const state = { custom: true };

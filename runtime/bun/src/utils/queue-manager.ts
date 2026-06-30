@@ -32,6 +32,8 @@ export interface WorkerLike {
 export interface QueueLike<T = unknown> {
   add(name: string, data: T, opts?: JobOptions): Promise<QueueJob<T>>;
   addBulk(jobs: BulkJobDefinition<T>[]): Promise<QueueJob<T>[]>;
+  getRepeatableJobs(): Promise<{ name: string; key: string }[]>;
+  removeRepeatableByKey(key: string): Promise<boolean>;
   disconnect(): Promise<void>;
 }
 
@@ -65,6 +67,14 @@ class BullMQQueueAdapter<T = unknown> implements QueueLike<T> {
       opts: job.opts,
     })) as Parameters<TypedBullQueue<T>["addBulk"]>[0];
     return (await this.queue.addBulk(bulkJobs)) as QueueJob<T>[];
+  }
+
+  public async getRepeatableJobs(): Promise<{ name: string; key: string }[]> {
+    return await this.queue.getRepeatableJobs();
+  }
+
+  public async removeRepeatableByKey(key: string): Promise<boolean> {
+    return await this.queue.removeRepeatableByKey(key);
   }
 
   public async disconnect(): Promise<void> {
