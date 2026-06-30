@@ -1,6 +1,7 @@
 {
     "words": [
         "autocannon",
+        "codegen",
         "CONTAINSALL",
         "CONTAINSANY",
         "CONTAINSNOT",
@@ -8,6 +9,9 @@
         "dotenv",
         "eslintcache",
         "mailpit",
+        "myapp",
+        "recompiler",
+        "recompiles",
         "setex",
         "surrealdb"
     ]
