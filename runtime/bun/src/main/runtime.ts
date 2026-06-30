@@ -1,6 +1,7 @@
 import type { RadiantAST, RadiantAdapter, StorageProvider, CacheStore, RadiantPlugin } from "../core";
 import { type DurableStreamStore, MemoryStreamStore } from "../core/stream";
 import { validateCreate, validateUpdate } from "../core/validator";
+import { RadiantError, toErrorResponse } from "../utils/error";
 import type { AccessRules, AuthUser, RadiantRequestContext } from "./access";
 import type { Hooks } from "./hooks";
 import { RadiantRouter } from "./router";
@@ -14,9 +15,12 @@ import { setupMonitoring, type RadiantMonitoringAPI } from "../monitoring";
 import { RateLimiter } from "../security/rate-limiter";
 import { RadiantKV } from "../utils/kv";
 import { createMailer, type RadiantMailer } from "../core/email";
+import { createLogger } from "../utils/logger";
 
 import { JWTAuthenticator, type JWTConfig } from "../security/auth";
 import { AdapterTokenStore, InMemoryTokenStore, type TokenStore } from "../security/token-store";
+
+const log = createLogger("runtime");
 
 export interface RadiantConfig {
   adapter: RadiantAdapter;
@@ -68,7 +72,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     if (this.schema.security?.auth?.strategies?.includes("jwt")) {
       const secret = process.env.JWT_SECRET;
       if (!secret) {
-        throw new Error("JWT_SECRET environment variable is required when JWT auth strategy is enabled in config.radiant.");
+        throw RadiantError.NotConfigured("JWT_SECRET environment variable is required when JWT auth strategy is enabled in config.radiant.");
       }
       const jwtSettings = this.schema.security.auth.jwt || {};
       // Use AdapterTokenStore when the adapter supports system tables (SQL adapters,
@@ -152,7 +156,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
 
     const allowed = await rules[action]!(ctx);
     if (!allowed) {
-      throw new Error(`Unauthorized to ${action} on ${collection}`);
+      throw RadiantError.Forbidden(`Unauthorized to ${action} on ${collection}`);
     }
   }
 
@@ -555,7 +559,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
             const data = await this.adapter.findById('radiant_globals', glob.slug);
             return new Response(JSON.stringify(data || {}), { status: 200, headers: { 'Content-Type': 'application/json' } });
           } catch (e: any) {
-            return new Response(JSON.stringify({ error: e.message }), { status: e.status || 500, headers: { 'Content-Type': 'application/json' } });
+            return toErrorResponse(e, ctx.request, this.adapter);
           }
         });
 
@@ -578,7 +582,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
             await this.runAfterHooks(glob.slug as any, "Update", ctx, result);
             return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
           } catch (e: any) {
-            return new Response(JSON.stringify({ error: e.message }), { status: e.status || 500, headers: { 'Content-Type': 'application/json' } });
+            return toErrorResponse(e, ctx.request, this.adapter);
           }
         };
 
@@ -748,11 +752,13 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         }
       }
       
-      const status = err.status || (err.message?.includes("Unauthorized") ? 403 : 500);
-      return new Response(
-        JSON.stringify({ error: err.message || "Internal Server Error" }),
-        { status, headers: { "Content-Type": "application/json" } }
-      );
+      // Use the structured error response builder which checks for
+      // RadiantError (correct status/code), database constraint errors
+      // (parsed by adapter), and hides internal details in production.
+      if (!(err instanceof RadiantError)) {
+        log.error({ err }, "Unhandled error in request pipeline");
+      }
+      return toErrorResponse(err, req, this.adapter);
     }
   }
 

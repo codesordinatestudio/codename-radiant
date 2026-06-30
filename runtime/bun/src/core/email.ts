@@ -4,6 +4,7 @@
 // Provides a unified email API with externally supplied transports.
 
 import type { EmailConfig, RadiantEmailSendOptions, RadiantEmailTransport, EmailTemplates } from "./types";
+import { RadiantError } from "../utils/error";
 
 export type { RadiantEmailSendOptions, RadiantEmailTransport };
 
@@ -26,7 +27,7 @@ export class RadiantMailer {
 
     const resolvedTransport = transport ?? config?.transport;
     if (!resolvedTransport) {
-      throw new Error("Email transport is required. Install an email provider plugin and pass email.transport.");
+      throw RadiantError.NotConfigured("Email transport is required. Install an email provider plugin and pass email.transport.");
     }
     this.transport = resolvedTransport;
   }
@@ -37,7 +38,7 @@ export class RadiantMailer {
 
   async send(options: RadiantEmailSendOptions): Promise<{ messageId: string }> {
     if (!options.to) {
-      throw new Error("Email 'to' address is required");
+      throw RadiantError.BadRequest("Email 'to' address is required");
     }
     return this.transport.send({ from: this.from, ...options });
   }

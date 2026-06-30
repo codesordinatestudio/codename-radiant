@@ -1,5 +1,6 @@
 import type { ConnectionOptions, JobsOptions, QueueOptions, WorkerOptions } from "bullmq";
 import { Queue as BullQueue, Worker as BullWorker, QueueEvents as BullQueueEvents } from "bullmq";
+import { RadiantError } from "./error";
 import { logger } from "./logger";
 
 export interface BullMQConfig {
@@ -94,7 +95,7 @@ export class RadiantQueueManager {
     this.config = config;
 
     if (!this.config.bullmq?.connection) {
-      throw new Error('RadiantQueueManager: bullmq provider requires "bullmq.connection"');
+      throw RadiantError.NotConfigured('RadiantQueueManager: bullmq provider requires "bullmq.connection"');
     }
   }
 
@@ -114,7 +115,7 @@ export class RadiantQueueManager {
 
   public static getInstance(): RadiantQueueManager {
     if (!RadiantQueueManager.instance) {
-      throw new Error("RadiantQueueManager not initialized. Call initialize() first.");
+      throw RadiantError.NotConfigured("RadiantQueueManager not initialized. Call initialize() first.");
     }
     return RadiantQueueManager.instance;
   }

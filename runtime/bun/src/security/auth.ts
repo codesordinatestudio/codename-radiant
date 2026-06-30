@@ -2,6 +2,9 @@ import { SignJWT, jwtVerify } from "jose";
 import type { RadiantAdapter } from "../core";
 import type { AuthUser } from "../main/access";
 import { InMemoryTokenStore, type TokenStore } from "./token-store";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("auth");
 
 export interface JWTConfig {
   secret: string;
@@ -86,26 +89,36 @@ export class JWTAuthenticator {
   }
 
   async refreshTokenPair(refreshToken: string): Promise<TokenPair | null> {
+    let payload: any;
     try {
-      const { payload } = await jwtVerify(
+      payload = await jwtVerify(
         refreshToken,
         new TextEncoder().encode(this.config.secret)
       );
+    } catch {
+      // JWT verification failed (expired, tampered, wrong signature) —
+      // expected failure, return null without logging.
+      return null;
+    }
 
-      if (payload.type !== "refresh") return null;
+    if (payload.type !== "refresh") return null;
 
-      const tokenHash = await sha256(refreshToken);
-      const entry = await this.tokenStore.lookup(tokenHash);
-      if (!entry) return null;
+    const tokenHash = await sha256(refreshToken);
+    const entry = await this.tokenStore.lookup(tokenHash);
+    if (!entry) return null;
 
-      // Rotate: revoke old token, issue a new pair
-      await this.tokenStore.revoke(tokenHash);
+    // Rotate: revoke old token, issue a new pair
+    await this.tokenStore.revoke(tokenHash);
 
+    try {
       const user = await this.adapter.findById(payload.collection as string, payload.sub as string);
       if (!user) return null;
 
       return this.generateTokenPair(user, payload.collection as string);
-    } catch {
+    } catch (err) {
+      // Adapter lookup failure is unexpected — log it, don't silently
+      // return null which would mask a DB connectivity issue.
+      log.error({ err }, "Failed to look up user during refresh token rotation");
       return null;
     }
   }

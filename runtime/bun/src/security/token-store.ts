@@ -1,4 +1,7 @@
 import type { RadiantAdapter } from "../core";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("token-store");
 
 /**
  * A persisted entry for a refresh token.
@@ -105,11 +108,12 @@ export class AdapterTokenStore implements TokenStore {
       } else {
         await this.adapter.create(REFRESH_TOKEN_COLLECTION, doc);
       }
-    } catch {
+    } catch (err) {
       // If the system table doesn't exist yet (e.g. before first sync),
-      // the create will throw — fall back silently. The token will still
+      // the create will throw — log and continue. The token will still
       // be valid for the lifetime of the JWT itself; it just won't be
       // revocable until the table is created.
+      log.warn({ err }, "Failed to persist refresh token to adapter — table may not exist yet");
     }
   }
 
@@ -123,7 +127,8 @@ export class AdapterTokenStore implements TokenStore {
         role: doc.role as string | undefined,
         expiresAt: doc.expiresAt as number,
       };
-    } catch {
+    } catch (err) {
+      log.warn({ err }, "Failed to look up refresh token from adapter — table may not exist yet");
       return null;
     }
   }
@@ -131,8 +136,8 @@ export class AdapterTokenStore implements TokenStore {
   async revoke(hash: string): Promise<void> {
     try {
       await this.adapter.delete(REFRESH_TOKEN_COLLECTION, hash);
-    } catch {
-      // Table may not exist yet — nothing to revoke.
+    } catch (err) {
+      log.warn({ err }, "Failed to revoke refresh token from adapter — table may not exist yet");
     }
   }
 
@@ -145,8 +150,8 @@ export class AdapterTokenStore implements TokenStore {
       for (const doc of result.docs) {
         await this.adapter.delete(REFRESH_TOKEN_COLLECTION, doc.id as string);
       }
-    } catch {
-      // Table may not exist yet — nothing to revoke.
+    } catch (err) {
+      log.warn({ err }, "Failed to revoke all refresh tokens for user — table may not exist yet");
     }
   }
 
@@ -160,8 +165,8 @@ export class AdapterTokenStore implements TokenStore {
       for (const doc of result.docs) {
         await this.adapter.delete(REFRESH_TOKEN_COLLECTION, doc.id as string);
       }
-    } catch {
-      // Table may not exist yet — nothing to purge.
+    } catch (err) {
+      log.warn({ err }, "Failed to purge expired refresh tokens — table may not exist yet");
     }
   }
 }

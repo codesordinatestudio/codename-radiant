@@ -1,4 +1,5 @@
 import { RadiantQueueManager } from "../utils/queue-manager";
+import { RadiantError } from "../utils/error";
 
 export class CronManager {
   private localJobs = new Map<string, { stop(): void }>();
@@ -47,7 +48,7 @@ export class CronManager {
       
     } else {
       if (this.localJobs.has(name)) {
-        throw new Error(`[Radiant Cron] A cron job with the name "${name}" is already registered.`);
+        throw RadiantError.Conflict(`[Radiant Cron] A cron job with the name "${name}" is already registered.`);
       }
 
       const job = Bun.cron(schedule, async () => {
