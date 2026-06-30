@@ -6,6 +6,11 @@ You can use these packages in any standalone project by running the following co
 bun link @radiant/cli
 bun link vscode-radiant
 bun link @codesordinatestudio/radiant-bun
+bun link @codesordinatestudio/radiant-plugin-s3
+bun link @codesordinatestudio/radiant-plugin-surrealdb
+bun link @codesordinatestudio/radiant-plugin-redis
+bun link @codesordinatestudio/radiant-plugin-sqlite
+bun link @codesordinatestudio/radiant-plugin-mongodb
 bun link @codesordinatestudio/radiant-plugin-postgres
 ```
 

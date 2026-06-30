@@ -37,6 +37,8 @@ export class SQLiteAdapter implements RadiantAdapter {
 
   private initDb() {
     this.db = new Database(this.url);
+    this.db.run("PRAGMA journal_mode = WAL;");
+    this.db.run("PRAGMA synchronous = NORMAL;");
   }
 
   private async closeDb(dbInstance: any) {

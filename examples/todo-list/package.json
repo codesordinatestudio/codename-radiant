@@ -12,6 +12,6 @@
   },
   "dependencies": {
     "@codesordinatestudio/radiant-bun": "workspace:*",
-    "@codesordinatestudio/radiant-plugin-postgres": "workspace:*"
+    "@codesordinatestudio/radiant-plugin-sqlite": "workspace:*"
   }
 }

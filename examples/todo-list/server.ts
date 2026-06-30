@@ -6,4 +6,4 @@ import "./hooks";
 import "./custom-routes";
 
 // Start the server
-app.start({ port: 3000 }).catch(console.error);
+app.start({ port: 49484 }).catch(console.error);

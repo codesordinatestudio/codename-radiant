@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import pc from 'picocolors';
 import * as p from '@clack/prompts';
 import { generateCompilerOutput } from './cli';
-import { scaffoldTsProject } from './scaffolds/ts';
+import { scaffoldTsProject } from './scaffolds/bun';
 
 export async function devCommand(options: { runtime?: string, dir?: string }) {
   const dir = options.dir || resolve(process.cwd(), 'radiant');

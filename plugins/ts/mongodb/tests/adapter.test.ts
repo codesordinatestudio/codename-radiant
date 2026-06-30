@@ -3,7 +3,7 @@ import { MongoDBAdapter } from "../src/adapter";
 
 describe("MongoDBAdapter", () => {
   test("builds simple equality filters", async () => {
-    const adapter = new MongoDBAdapter("mongodb://localhost");
+    const adapter = new MongoDBAdapter({ url: "mongodb://localhost" });
     
     // Using any to test private query builder method
     const filter = await (adapter as any).buildMongoWhere({
@@ -20,7 +20,7 @@ describe("MongoDBAdapter", () => {
   });
 
   test("builds operator filters", async () => {
-    const adapter = new MongoDBAdapter("mongodb://localhost");
+    const adapter = new MongoDBAdapter({ url: "mongodb://localhost" });
     
     const filter = await (adapter as any).buildMongoWhere({
       price: { gt: 100, lte: 500 },
@@ -36,7 +36,7 @@ describe("MongoDBAdapter", () => {
   });
 
   test("builds boolean OR/AND conditions", async () => {
-    const adapter = new MongoDBAdapter("mongodb://localhost");
+    const adapter = new MongoDBAdapter({ url: "mongodb://localhost" });
     
     const filter = await (adapter as any).buildMongoWhere({
       or: [

@@ -1,6 +1,6 @@
 import { createRadiant } from "./radiant/runtime";
-import { postgres } from "../../plugins/postgres/src";
+import { sqlite } from "@codesordinatestudio/radiant-plugin-sqlite";
 
 export const app = createRadiant({
-  adapter: postgres({ url: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/radiant" })
+  adapter: sqlite({ url: "file:./temp/radiant.db" }),
 });
