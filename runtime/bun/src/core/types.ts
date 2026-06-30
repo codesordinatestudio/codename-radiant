@@ -59,6 +59,13 @@ export interface RadiantAST {
       enabled?: boolean;
     };
   };
+  email?: {
+    from?: string;
+    appName?: string;
+    resetTokenExpiryMinutes?: number;
+    resetPasswordUrl?: string;
+    verifyEmailUrl?: string;
+  };
 }
 
 export interface CollectionConfig {
@@ -112,4 +119,29 @@ export interface RadiantPlugin {
   beforeRequest?: (ctx: RadiantRequestContext) => void | Promise<void>;
   afterRequest?: (ctx: RadiantRequestContext, response: Response) => void | Promise<void>;
   onError?: (ctx: RadiantRequestContext, error: any) => Response | void | Promise<Response | void>;
+}
+
+export interface RadiantEmailSendOptions {
+  from?: string;
+  to?: string;
+  cc?: string;
+  bcc?: string;
+  replyTo?: string;
+  subject?: string;
+  text?: string;
+  html?: string;
+}
+
+export interface RadiantEmailTransport {
+  send(options: RadiantEmailSendOptions): Promise<{ messageId: string }>;
+  verify(): Promise<boolean>;
+}
+
+export interface EmailConfig {
+  from?: string;
+  appName?: string;
+  resetTokenExpiryMinutes?: number;
+  resetPasswordUrl?: string;
+  verifyEmailUrl?: string;
+  transport?: RadiantEmailTransport;
 }

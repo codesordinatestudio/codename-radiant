@@ -115,6 +115,10 @@
       "enabled": false
     }
   },
+  "email": {
+    "from": "Radiant Sandbox <no-reply@radiant.dev>",
+    "appName": "Radiant Demo App"
+  },
   "monitoring": {
     "healthCheck": {
       "enabled": true,

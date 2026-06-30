@@ -1,0 +1,24 @@
+{
+  "name": "@codesordinatestudio/radiant-plugin-nodemailer",
+  "version": "0.13.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun --external nodemailer --external resend && tsc --emitDeclarationOnly"
+  },
+  "dependencies": {
+    "nodemailer": "^8.0.5",
+    "@codesordinatestudio/radiant-bun": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  },
+  "sideEffects": false
+}

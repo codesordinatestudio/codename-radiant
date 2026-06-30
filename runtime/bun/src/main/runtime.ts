@@ -10,6 +10,7 @@ import { RadiantSSE } from "./sse";
 import { setupMonitoring } from "../monitoring";
 import { RateLimiter } from "../security/rate-limiter";
 import { RadiantKV } from "../utils/kv";
+import { createMailer, type RadiantMailer } from "../core/email";
 
 import { JWTAuthenticator, type JWTConfig } from "../security/auth";
 
@@ -18,6 +19,7 @@ export interface RadiantConfig {
   storage?: StorageProvider;
   cache?: CacheStore;
   plugins?: RadiantPlugin[];
+  email?: import("../core/types").EmailConfig;
 }
 
 export class RadiantRuntime<TCollections extends Record<string, any> = Record<string, any>> {
@@ -28,6 +30,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   public storage: StorageProvider;
   public cache: CacheStore;
   public plugins: RadiantPlugin[];
+  public mailer?: RadiantMailer;
   private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks<any, any>>();
@@ -43,6 +46,12 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     this.plugins = config.plugins || [];
     this.router = new RadiantRouter();
     this.rateLimiter = new RateLimiter(this.schema, new RadiantKV());
+    if (config.email) {
+      this.mailer = createMailer({
+        ...this.schema.email,
+        ...config.email
+      });
+    }
     
     // Setup monitoring endpoints
     setupMonitoring(this);

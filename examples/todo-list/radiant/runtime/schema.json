@@ -39,6 +39,7 @@
       ]
     }
   ],
+  "globals": [],
   "core": {
     "api": {
       "prefix": "/api",

@@ -1,0 +1,23 @@
+{
+  "name": "@codesordinatestudio/radiant-plugin-resend",
+  "version": "0.13.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @codesordinatestudio/radiant-bun --external resend && tsc --emitDeclarationOnly"
+  },
+  "dependencies": {
+    "resend": "^6.12.0",
+    "@codesordinatestudio/radiant-bun": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  },
+  "sideEffects": false
+}

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@codesordinatestudio/radiant-bun": "workspace:*",
-    "@codesordinatestudio/radiant-plugin-sqlite": "workspace:*"
+    "@codesordinatestudio/radiant-plugin-sqlite": "workspace:*",
+    "@codesordinatestudio/radiant-plugin-nodemailer": "workspace:*"
   }
 }
