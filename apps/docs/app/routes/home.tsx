@@ -1,13 +1,39 @@
-import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { DocTemplate } from "../components/blocks/DocTemplate";
+import { MarkdownRenderer } from "../components/ui/MarkdownRenderer";
+import { Callout } from "../components/ui/Callout";
+import { useLoaderData } from "react-router";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
-  ];
+export async function loader() {
+  const filePath = path.join(process.cwd(), "app/content", "overview.md");
+  const markdown = await fs.readFile(filePath, "utf-8");
+
+  const titleMatch = /^#\s+(.+)$/m.exec(markdown);
+  const title = titleMatch ? titleMatch[1] : "Overview";
+  const body = titleMatch
+    ? markdown.slice(0, titleMatch.index) + markdown.slice(titleMatch.index + titleMatch[0].length).replace(/^\n+/, "")
+    : markdown;
+
+  const descMatch = body
+    .split("\n")
+    .find((line) => line.trim().length > 0 && !line.startsWith("#") && !line.startsWith("```") && !line.startsWith("|") && !line.startsWith("-"));
+
+  const description = descMatch ? descMatch.replace(/[*_`]/g, "").trim() : undefined;
+
+  return { title, description, body };
 }
 
 export default function Home() {
-  return <Welcome />;
+  const { title, description, body } = useLoaderData<typeof loader>();
+
+  return (
+    <DocTemplate
+      title={title}
+      description={description}
+      nextPage={{ label: "DSL Syntax", href: "/docs/dsl-syntax" }}
+    >
+      <MarkdownRenderer content={body} />
+    </DocTemplate>
+  );
 }

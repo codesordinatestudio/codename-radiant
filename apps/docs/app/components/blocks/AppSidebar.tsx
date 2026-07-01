@@ -1,84 +1,79 @@
 import * as React from "react";
 import { SearchInput } from "../ui/SearchInput";
 
+const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] = [
+  {
+    title: "Getting Started",
+    items: [
+      { label: "Overview", slug: "" },
+      { label: "DSL Syntax", slug: "dsl-syntax" },
+    ],
+  },
+  {
+    title: "Schema",
+    items: [
+      { label: "Config Block", slug: "config-block" },
+      { label: "Collections", slug: "collections" },
+      { label: "Field Types", slug: "field-types" },
+      { label: "Decorators", slug: "decorators" },
+      { label: "Globals", slug: "globals" },
+    ],
+  },
+  {
+    title: "Tooling",
+    items: [
+      { label: "CLI Reference", slug: "cli-reference" },
+      { label: "Editor Support", slug: "editor-support" },
+      { label: "Database Sync", slug: "database-sync" },
+    ],
+  },
+  {
+    title: "Internals",
+    items: [
+      { label: "Code Generation", slug: "code-generation" },
+      { label: "Environment Variables", slug: "environment-variables" },
+      { label: "Project Structure", slug: "project-structure" },
+      { label: "Compiler Pipeline", slug: "compiler-pipeline" },
+    ],
+  },
+];
+
 export function AppSidebar() {
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const currentSlug = pathname.replace(/^\/docs\//, "").replace(/\/$/, "");
+
   return (
     <aside className="w-64 h-[calc(100vh-4rem)] overflow-y-auto border-r border-gray-200/50 bg-warm-bg sticky top-16 hidden md:block shrink-0">
       <div className="p-4">
-        <SearchInput placeholder="Fast search" className="mb-6" />
+        <SearchInput placeholder="Search docs" className="mb-6" />
 
         <nav className="space-y-6">
-          {/* Main Sections */}
-          <div className="space-y-1">
-            <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-200/50 text-gray-900 font-medium">
-              📄 Documentation
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              🗺️ Roadmap
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              📑 Templates
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              👥 Community
-            </a>
-          </div>
-
-          {/* Intro Group */}
-          <div>
-            <h3 className="px-3 text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-gray-400 text-xs">▶</span> Intro
-            </h3>
-          </div>
-
-          {/* Getting Started Group */}
-          <div>
-            <h3 className="px-3 text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-gray-400 text-xs">▼</span> Getting started
-            </h3>
-            <div className="space-y-1">
-              <a href="#" className="flex items-center justify-between px-3 py-1.5 ml-4 rounded-lg bg-gray-200/50 text-gray-900 text-sm">
-                Install
-                <span className="text-[10px] uppercase font-bold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full">React</span>
-              </a>
-              <a href="#" className="flex items-center px-3 py-1.5 ml-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm">
-                Quickstart
-              </a>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title}>
+              <h3 className="px-3 text-sm font-semibold text-gray-900 mb-2">
+                {group.title}
+              </h3>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const href = item.slug === "" ? "/" : `/docs/${item.slug}`;
+                  const isActive = currentSlug === item.slug || (item.slug === "" && pathname === "/");
+                  return (
+                    <a
+                      key={item.slug}
+                      href={href}
+                      className={`flex items-center px-3 py-1.5 ml-1 rounded-lg text-sm transition-colors ${
+                        isActive
+                          ? "bg-gray-200/50 text-gray-900 font-medium"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {item.label}
+                    </a>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-
-          {/* Usage Group */}
-          <div>
-            <h3 className="px-3 text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-gray-400 text-xs">▼</span> Usage
-            </h3>
-            <div className="space-y-1">
-              <a href="#" className="flex items-center px-3 py-1.5 ml-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm">
-                Layout
-              </a>
-              <a href="#" className="flex items-center px-3 py-1.5 ml-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm">
-                Themes
-              </a>
-              <a href="#" className="flex items-center px-3 py-1.5 ml-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm">
-                Private packages
-              </a>
-            </div>
-          </div>
-          
-          {/* Advanced Usage Group */}
-          <div>
-            <h3 className="px-3 text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-gray-400 text-xs">▼</span> Advanced Usage
-            </h3>
-            <div className="space-y-1">
-              <a href="#" className="flex items-center px-3 py-1.5 ml-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm">
-                Overview
-              </a>
-              <a href="#" className="flex items-center px-3 py-1.5 ml-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm">
-                Components
-              </a>
-            </div>
-          </div>
+          ))}
         </nav>
       </div>
     </aside>

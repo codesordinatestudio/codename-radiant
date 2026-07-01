@@ -19,6 +19,7 @@ import { createLogger } from "../utils/logger";
 
 import { JWTAuthenticator, type JWTConfig } from "../security/auth";
 import { AdapterTokenStore, InMemoryTokenStore, type TokenStore } from "../security/token-store";
+import { resolveAuditSecret, computeAuditHmac, type RadiantAuditEvent } from "../security/audit";
 
 const log = createLogger("runtime");
 
@@ -43,6 +44,8 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   public streamStore: DurableStreamStore;
   public cronManager = new CronManager();
   public monitoring?: RadiantMonitoringAPI;
+  public auditEnabled: boolean = false;
+  private auditKeyPromise?: Promise<CryptoKey>;
   private authEngine?: JWTAuthenticator;
 
   private _hooks = new Map<string, Hooks<any, any>>();
@@ -90,6 +93,14 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
         this.adapter,
         tokenStore,
       );
+    }
+
+    this.auditEnabled = this.schema.security?.audit?.enabled === true;
+    if (this.auditEnabled) {
+      this.auditKeyPromise = resolveAuditSecret(this.schema).catch(e => {
+        log.error({ err: e }, "Failed to resolve audit secret");
+        throw e;
+      });
     }
   }
 
@@ -593,6 +604,33 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   
+  public async audit(event: RadiantAuditEvent): Promise<void> {
+    if (!this.auditEnabled) return;
+    try {
+      const key = await this.auditKeyPromise!;
+      const recent = await this.adapter.find("radiant_audit_log", { limit: 1, sort: "-createdAt" });
+      const prevHmac = recent.docs.length > 0 ? (recent.docs[0] as any).hmac ?? null : null;
+      const hmac = await computeAuditHmac(key, event, prevHmac);
+      
+      // Use raw adapter create so it doesn't loop back to runtime wrappers
+      const now = new Date().toISOString();
+      await this.adapter.create("radiant_audit_log", {
+        id: crypto.randomUUID(),
+        action: event.action,
+        collection: event.collection,
+        recordId: event.recordId,
+        userId: event.userId,
+        metadata: event.metadata ?? {},
+        hmac,
+        prevHmac,
+        createdAt: now,
+        updatedAt: now
+      });
+    } catch (err) {
+      log.error({ err }, "Audit persistence failed");
+    }
+  }
+
   // --- DATABASE LOCAL API ---
   public async find<K extends keyof Omit<TCollections, "__populated">, D extends number = 0>(collection: K, query?: Omit<import("../core/adapter").QueryArgs<TCollections[K]>, "depth"> & { depth?: D }): Promise<import("../core/adapter").PaginatedResult<D extends 0 ? TCollections[K] : "__populated" extends keyof TCollections ? (K extends keyof TCollections["__populated"] ? TCollections["__populated"][K] : TCollections[K]) : TCollections[K]>> {
     return this.adapter.find(collection as string, query as any) as any;
@@ -603,15 +641,26 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
   }
 
   public async create<K extends keyof TCollections>(collection: K, data: Partial<TCollections[K]>): Promise<TCollections[K]> {
-    return this.adapter.create(collection as string, data as any) as Promise<TCollections[K]>;
+    const result = await this.adapter.create(collection as string, data as any) as TCollections[K];
+    if (collection !== "radiant_audit_log" && collection !== "radiant_refresh_tokens") {
+      this.audit({ action: "create", collection: collection as string, recordId: (result as any).id, metadata: { data } }).catch(console.error);
+    }
+    return result;
   }
 
   public async update<K extends keyof TCollections>(collection: K, id: string, data: Partial<TCollections[K]>): Promise<TCollections[K]> {
-    return this.adapter.update(collection as string, id, data as any) as Promise<TCollections[K]>;
+    const result = await this.adapter.update(collection as string, id, data as any) as TCollections[K];
+    if (collection !== "radiant_audit_log" && collection !== "radiant_refresh_tokens") {
+      this.audit({ action: "update", collection: collection as string, recordId: id, metadata: { data } }).catch(console.error);
+    }
+    return result;
   }
 
   public async delete<K extends keyof TCollections>(collection: K, id: string): Promise<void> {
-    return this.adapter.delete(collection as string, id);
+    await this.adapter.delete(collection as string, id);
+    if (collection !== "radiant_audit_log" && collection !== "radiant_refresh_tokens") {
+      this.audit({ action: "delete", collection: collection as string, recordId: id }).catch(console.error);
+    }
   }
 
   public async count<K extends keyof TCollections>(collection: K, query?: Pick<import("../core/adapter").QueryArgs<TCollections[K]>, "where">): Promise<number> {

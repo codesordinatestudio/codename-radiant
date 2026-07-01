@@ -256,8 +256,7 @@ export function compile(rawAsts: any[]): { schema: any; errors: SemanticError[] 
         { name: "userId", type: "text", optional: true },
         { name: "metadata", type: "json", optional: true },
         { name: "hmac", type: "text" },
-        { name: "prevHmac", type: "text", optional: true },
-        { name: "createdAt", type: "date" }
+        { name: "prevHmac", type: "text", optional: true }
       ]
     });
   }

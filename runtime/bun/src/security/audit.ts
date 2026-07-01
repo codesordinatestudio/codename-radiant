@@ -103,9 +103,10 @@ export async function verifyAuditChain(
   let prevHmac: string | null = null;
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
+    const parsedMetadata = typeof entry.metadata === "string" ? JSON.parse(entry.metadata) : entry.metadata;
     const ok = await verifyAuditHmac(
       key,
-      { action: entry.action, collection: entry.collection, recordId: entry.recordId, userId: entry.userId, metadata: entry.metadata },
+      { action: entry.action, collection: entry.collection, recordId: entry.recordId, userId: entry.userId, metadata: parsedMetadata },
       prevHmac,
       entry.hmac,
     );
