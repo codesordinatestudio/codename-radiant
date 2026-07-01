@@ -11,19 +11,19 @@ if (!existsSync("./tmp")) mkdirSync("./tmp");
 
 // Initialize the Radiant runtime using the compiled AST schema
 export const app = new RadiantRuntime<Collections>(schema as any, {
-  adapter: sqlite({ url: "file:./tmp/builder.sqlite" }),
+  adapter: sqlite({ url: "builder.sqlite" }),
 });
 
 import { rmSync } from "fs";
 import { join } from "path";
 
-// Cleanup cron job: every hour, wipe projects older than 24 hours
+// Cleanup cron job: every hour, wipe projects older than 1 hour
 setInterval(async () => {
   try {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
     const oldProjects = await app.adapter.find("projects", {
       where: {
-        createdAt: { lt: twentyFourHoursAgo }
+        createdAt: { lt: oneHourAgo }
       }
     });
 
@@ -63,3 +63,4 @@ app.plugins.push({
 const port = process.env.PORT ? parseInt(process.env.PORT) : 9100;
 app.start({ port });
 console.log(`Radiant Builder API is running on http://localhost:${port}`);
+console.log(`Test API Key (Bearer): RADIANT_BUILDER_SECRET`);

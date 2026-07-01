@@ -9,6 +9,7 @@
         "dotenv",
         "eslintcache",
         "mailpit",
+        "modelcontextprotocol",
         "myapp",
         "recompiler",
         "recompiles",

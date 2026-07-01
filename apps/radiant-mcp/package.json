@@ -1,0 +1,19 @@
+{
+  "name": "@codesordinatestudio/radiant-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server for Radiant Builder API",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.6"
+  }
+}

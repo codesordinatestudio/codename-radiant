@@ -1,0 +1,29 @@
+version: "3.8"
+name: "radiant-servers"
+
+services:
+  radiant-api:
+    build:
+      context: .
+      dockerfile: apps/radiant-api/Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=3000
+    command: ["bun", "run", "dev"]
+    working_dir: /app/apps/radiant-api
+
+  radiant-mcp:
+    build:
+      context: .
+      dockerfile: apps/radiant-mcp/Dockerfile.dev
+    volumes:
+      - .:/app
+    environment:
+      - API_BASE_URL=http://radiant-api:3000
+    command: ["bun", "run", "dev"]
+    working_dir: /app/apps/radiant-mcp
+    depends_on:
+      - radiant-api

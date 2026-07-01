@@ -34,7 +34,12 @@ app.router.post("/projects", async (ctx) => {
     await scaffoldTsProject(targetDir);
 
     const { execSync } = await import("child_process");
-    execSync("bun install", { cwd: targetDir, stdio: "ignore" });
+    try {
+      execSync("bun install", { cwd: targetDir, stdio: "pipe" });
+    } catch (err: any) {
+      console.error("Bun install failed with output:", err.stdout?.toString(), err.stderr?.toString());
+      throw err;
+    }
 
     const projectRadiantDir = join(targetDir, "radiant");
     if (!existsSync(projectRadiantDir)) {

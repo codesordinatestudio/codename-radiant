@@ -1,6 +1,6 @@
 import { app } from "../server";
 import { t } from "@codesordinatestudio/radiant-bun";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -13,16 +13,11 @@ function generateDslFragment(slug: string, data: any) {
   for (const field of data.fields || []) {
     let typeDef = field.type;
     
-    // Array type mapping
     if (field.type === "array") {
       typeDef = `${field.items}[]`;
-    } 
-    // Relationship mapping
-    else if (field.type === "relationship") {
+    } else if (field.type === "relationship") {
       typeDef = `link("${field.target}")`;
-    }
-    // Select/enum mapping
-    else if (field.type === "select" || field.type === "enum") {
+    } else if (field.type === "select" || field.type === "enum") {
       typeDef = "[" + (field.options || field.values).map((v: string) => '"' + v + '"').join(", ") + "]";
     }
 
@@ -39,91 +34,88 @@ function generateDslFragment(slug: string, data: any) {
   return `\ncollection ${slug} {\n${authStr}  fields: {\n${fieldsStr}  }\n}\n`;
 }
 
-app.router.post("/projects/:projectId/collections", async (ctx) => {
-  const projectId = ctx.params.projectId;
+async function getProjectDir(projectId: string) {
   const project = await app.adapter.find("projects", { where: { projectId: { eq: projectId } } });
+  if (project.docs.length === 0) return null;
+  return project.docs[0].targetDir as string;
+}
+
+// GET all collections
+app.router.get("/projects/:projectId/collections", async (ctx) => {
+  const targetDir = await getProjectDir(ctx.params.projectId);
+  if (!targetDir) return new Response(JSON.stringify({ error: "Project not found" }), { status: 404 });
   
-  if (project.docs.length === 0) {
-    return new Response(JSON.stringify({ error: "Project not found" }), { status: 404, headers: { "Content-Type": "application/json" }});
+  const schemaPath = join(targetDir, "radiant", "runtime", "schema.json");
+  if (!existsSync(schemaPath)) return [];
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  return schema.collections || [];
+});
+
+// POST / PUT helper
+async function saveCollection(projectId: string, slug: string, data: any, isUpdate: boolean) {
+  const targetDir = await getProjectDir(projectId);
+  if (!targetDir) return new Response(JSON.stringify({ error: "Project not found" }), { status: 404 });
+
+  const collectionsDir = join(targetDir, "radiant", "collections");
+  if (!existsSync(collectionsDir)) mkdirSync(collectionsDir, { recursive: true });
+  
+  const filePath = join(collectionsDir, `${slug}.radiant`);
+  
+  if (!isUpdate && existsSync(filePath)) {
+    return new Response(JSON.stringify({ error: "Collection already exists" }), { status: 409 });
+  }
+  if (isUpdate && !existsSync(filePath)) {
+    return new Response(JSON.stringify({ error: "Collection not found" }), { status: 404 });
   }
 
-  const p = project.docs[0];
-  const data = ctx.body as any;
-  const slug = data.slug;
-
-  const projectRadiantDir = join(p.targetDir as string, "radiant");
-  if (!existsSync(projectRadiantDir)) {
-    import("fs").then(fs => fs.mkdirSync(projectRadiantDir, { recursive: true }));
-  }
-  const collectionsFilePath = join(projectRadiantDir, "collections.radiant");
-  
-  // Backup existing
-  const existingContent = existsSync(collectionsFilePath) ? readFileSync(collectionsFilePath, "utf8") : "";
-  
-  // Append new DSL
+  const existingContent = existsSync(filePath) ? readFileSync(filePath, "utf8") : null;
   const dslFragment = generateDslFragment(slug, data);
-  writeFileSync(collectionsFilePath, existingContent + dslFragment);
+  writeFileSync(filePath, dslFragment);
 
   try {
-    // Validate compilation
-    // We run bunx radiant generate --dir radiant --runtime ts inside the target directory
-    // Actually we can just run the CLI directly from node_modules since it's installed there
     const cmd = `bun run ../../packages/cli/src/index.ts generate --dir radiant --runtime ts`;
-    await execAsync(cmd, { cwd: p.targetDir as string });
-
-    return {
-      collection: slug,
-      status: "compiled",
-      dslFragment
-    };
+    await execAsync(cmd, { cwd: targetDir });
+    return { collection: slug, status: "compiled", dsl: dslFragment };
   } catch (error: any) {
-    // Rollback
-    if (existingContent === "") {
-      // we could delete it, but writing empty is fine
-      writeFileSync(collectionsFilePath, "");
-    } else {
-      writeFileSync(collectionsFilePath, existingContent);
-    }
-    
-    return new Response(JSON.stringify({ error: "Validation failed, changes rolled back", details: error.message }), { status: 400, headers: { "Content-Type": "application/json" }});
+    if (existingContent === null) rmSync(filePath, { force: true });
+    else writeFileSync(filePath, existingContent);
+    return new Response(JSON.stringify({ error: "Validation failed, rolled back", details: error.message }), { status: 400 });
   }
+}
+
+// POST create collection
+app.router.post("/projects/:projectId/collections", async (ctx) => {
+  const data = ctx.body as any;
+  const slug = data.slug || data.name;
+  return saveCollection(ctx.params.projectId, slug, data, false);
 }, { body: t.Any() });
 
+// PUT update collection
+app.router.put("/projects/:projectId/collections/:slug", async (ctx) => {
+  return saveCollection(ctx.params.projectId, ctx.params.slug, ctx.body, true);
+}, { body: t.Any() });
+
+// DELETE collection
 app.router.delete("/projects/:projectId/collections/:slug", async (ctx) => {
-  const projectId = ctx.params.projectId;
-  const slug = ctx.params.slug;
-  const project = await app.adapter.find("projects", { where: { projectId: { eq: projectId } } });
+  const targetDir = await getProjectDir(ctx.params.projectId);
+  if (!targetDir) return new Response(JSON.stringify({ error: "Project not found" }), { status: 404 });
+
+  const collectionsDir = join(targetDir, "radiant", "collections");
+  const filePath = join(collectionsDir, `${ctx.params.slug}.radiant`);
   
-  if (project.docs.length === 0) {
-    return new Response(JSON.stringify({ error: "Project not found" }), { status: 404, headers: { "Content-Type": "application/json" }});
+  if (!existsSync(filePath)) {
+    return new Response(JSON.stringify({ error: "Collection not found" }), { status: 404 });
   }
 
-  const p = project.docs[0];
-  const collectionsFilePath = join(p.targetDir as string, "radiant", "collections.radiant");
-  
-  if (!existsSync(collectionsFilePath)) {
-    return new Response(JSON.stringify({ error: "Collections file not found" }), { status: 404, headers: { "Content-Type": "application/json" }});
-  }
-
-  const existingContent = readFileSync(collectionsFilePath, "utf8");
-  
-  // Regex to remove the collection block
-  const regex = new RegExp(`collection\\s+${slug}\\s*\\{[\\s\\S]*?\\n\\}`, "g");
-  const newContent = existingContent.replace(regex, "");
-
-  writeFileSync(collectionsFilePath, newContent);
+  const existingContent = readFileSync(filePath, "utf8");
+  rmSync(filePath);
 
   try {
-    const cmd = `bun run node_modules/@radiant/cli/bin/radiant generate --dir radiant --runtime ts`;
-    await execAsync(cmd, { cwd: p.targetDir as string });
-
-    return {
-      collection: slug,
-      status: "compiled",
-      removed: true
-    };
+    const cmd = `bun run ../../packages/cli/src/index.ts generate --dir radiant --runtime ts`;
+    await execAsync(cmd, { cwd: targetDir });
+    return { collection: ctx.params.slug, status: "compiled", removed: true };
   } catch (error: any) {
-    writeFileSync(collectionsFilePath, existingContent);
-    return new Response(JSON.stringify({ error: "Validation failed", details: error.message }), { status: 400, headers: { "Content-Type": "application/json" }});
+    writeFileSync(filePath, existingContent);
+    return new Response(JSON.stringify({ error: "Validation failed, rolled back", details: error.message }), { status: 400 });
   }
 });

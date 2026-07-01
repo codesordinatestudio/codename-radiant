@@ -1,4 +1,5 @@
 version: '3.8'
+name: 'radiant-end-to-end-test'
 
 services:
   postgres:
