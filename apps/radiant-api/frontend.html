@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radiant E-Commerce</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f9f9f9; padding: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .card img { width: 100%; height: 200px; object-fit: contain; margin-bottom: 1rem; border-radius: 8px; }
+    .card h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; color: #111; }
+    .card p { color: #666; font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.4; }
+    .card .price { font-size: 1.5rem; font-weight: bold; color: #000; }
+    h1 { color: #111; }
+    .subtitle { color: #666; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <h1>Radiant Store</h1>
+  <div class="subtitle">Fetching products directly from the generated Radiant SQLite Backend!</div>
+  
+  <div class="grid" id="products"></div>
+
+  <script>
+    async function loadProducts() {
+      try {
+        const res = await fetch('http://localhost:3000/api/products');
+        const data = await res.json();
+        
+        const container = document.getElementById('products');
+        if (data.docs && data.docs.length > 0) {
+          container.innerHTML = data.docs.map(p => `
+            <div class="card">
+              <img src="${p.image}" alt="${p.title}" />
+              <h3>${p.title}</h3>
+              <p>${p.description}</p>
+              <div class="price">$${p.price}</div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p>No products found in the database.</p>';
+        }
+      } catch (err) {
+        document.getElementById('products').innerHTML = `<p style="color: red;">Error loading products: ${err.message}. Is the backend running on port 3000?</p>`;
+      }
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>

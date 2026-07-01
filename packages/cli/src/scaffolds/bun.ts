@@ -45,7 +45,10 @@ export async function scaffoldTsProject(rootDir: string) {
 
     let isLinked = false;
 
-    if (process.env.NODE_ENV !== "test") {
+    if (process.env.RADIANT_LOCAL_BUILDER === "1") {
+      isLinked = true;
+      console.log("IS_LINKED IS TRUE BECAUSE RADIANT_LOCAL_BUILDER === 1");
+    } else if (process.env.NODE_ENV !== "test") {
       s.start("Installing @codesordinatestudio/radiant-bun");
       let installCmd = 'bun add @codesordinatestudio/radiant-bun@latest';
       if (useSqlite) installCmd += ' @codesordinatestudio/radiant-plugin-sqlite@latest';
@@ -81,7 +84,7 @@ export async function scaffoldTsProject(rootDir: string) {
     if (useSurreal) pkgJson.dependencies["@codesordinatestudio/radiant-plugin-surrealdb"] = isLinked ? "link:@codesordinatestudio/radiant-plugin-surrealdb" : "latest";
     writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
 
-    if (process.env.NODE_ENV !== "test") {
+    if (process.env.RADIANT_LOCAL_BUILDER !== "1" && process.env.NODE_ENV !== "test") {
       s.start("Running bun install");
       try {
         execSync("bun install", { stdio: "ignore", cwd: rootDir });
@@ -366,7 +369,7 @@ app.start({ port: 3000 }).catch(console.error);
     writeFileSync(join(srcDir, "index.ts"), indexTsContent);
 
     let envContent = `JWT_SECRET=${randomBytes(16).toString('hex')}\n`;
-    if (useSqlite) envContent += `DATABASE_URL=radiant.sqlite\n`;
+    if (useSqlite) envContent += `DATABASE_URL=file:radiant.sqlite\n`;
     else if (usePostgres) envContent += `DATABASE_URL=postgres://postgres:postgres@localhost:5432/radiant_app\n`;
     else if (useMongo) envContent += `DATABASE_URL=mongodb://localhost:27017/radiant_app\n`;
     else if (useRedis) envContent += `DATABASE_URL=redis://localhost:6379\n`;

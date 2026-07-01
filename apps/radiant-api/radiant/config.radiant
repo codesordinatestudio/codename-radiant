@@ -1,0 +1,12 @@
+config {
+  apiPrefix: "/api"
+}
+
+collection projects {
+  fields: {
+    projectId: text @unique;
+    apiKey: text;
+    targetDir: text;
+    status: ["ready", "building", "failed"] @default("ready");
+  }
+}

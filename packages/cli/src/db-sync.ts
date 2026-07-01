@@ -77,7 +77,16 @@ interface DiffReport {
 // ──────────────────────────────────────────────────────────────
 
 async function createAdapterFromUrl(url: string, projectRoot: string): Promise<RadiantAdapter> {
-  const scheme = new URL(url).protocol.replace(':', '');
+  let scheme = "";
+  if (url.startsWith("file:")) scheme = "file";
+  else if (url.startsWith("sqlite:")) scheme = "sqlite";
+  else {
+    try {
+      scheme = new URL(url).protocol.replace(':', '');
+    } catch (e) {
+      scheme = url.split(":")[0];
+    }
+  }
 
   // Resolve plugin packages from the user's project node_modules,
   // not from the CLI's bundled dependencies.
