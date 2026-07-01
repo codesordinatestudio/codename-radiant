@@ -1,7 +1,7 @@
-import * as React from "react";
 import { Link, useLocation } from "react-router";
+import * as React from "react";
 
-const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] = [
+const CORE_NAV_GROUPS = [
   {
     title: "Getting Started",
     items: [
@@ -19,8 +19,11 @@ const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] 
       { label: "Globals", slug: "globals" },
     ],
   },
+];
+
+const TS_NAV_GROUPS = [
   {
-    title: "TS Runtime",
+    title: "Runtime",
     items: [
       { label: "Access Control", slug: "access" },
       { label: "Hooks", slug: "hooks" },
@@ -69,10 +72,15 @@ const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] 
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ runtime }: { runtime: string }) {
   const location = useLocation();
   const pathname = location.pathname;
-  const currentSlug = pathname.replace(/^\/docs\//, "").replace(/\/$/, "");
+  
+  // E.g., /docs/ts/access -> slug is 'access'. /docs/ts -> slug is ''
+  const currentSlug = pathname.replace(new RegExp(`^\\/docs\\/${runtime}\\/`), "").replace(/\/$/, "");
+  const activeSlug = currentSlug === "" || currentSlug === `/docs/${runtime}` ? "" : currentSlug;
+
+  const NAV_GROUPS = runtime === "ts" ? [...CORE_NAV_GROUPS, ...TS_NAV_GROUPS] : CORE_NAV_GROUPS;
 
   return (
     <aside className="w-64 h-[calc(100vh-4rem)] overflow-y-auto border-r border-base-content/10 bg-base-100 sticky top-16 hidden md:block shrink-0">
@@ -81,7 +89,7 @@ export function AppSidebar() {
         <ul className="menu w-full p-0">
           {NAV_GROUPS.map((group) => {
             const hasActiveItem = group.items.some(
-              (item) => currentSlug === item.slug || (item.slug === "" && pathname === "/"),
+              (item) => activeSlug === item.slug || (item.slug === "" && activeSlug === ""),
             );
 
             return (
@@ -92,8 +100,8 @@ export function AppSidebar() {
                   </summary>
                   <ul className="ml-2 pl-4 border-l border-base-content/10 mt-1 mb-2 space-y-0.5">
                     {group.items.map((item) => {
-                      const href = item.slug === "" ? "/" : `/docs/${item.slug}`;
-                      const isActive = currentSlug === item.slug || (item.slug === "" && pathname === "/");
+                      const href = item.slug === "" ? `/docs/${runtime}` : `/docs/${runtime}/${item.slug}`;
+                      const isActive = activeSlug === item.slug || (item.slug === "" && activeSlug === "");
                       return (
                         <li key={item.slug}>
                           <Link

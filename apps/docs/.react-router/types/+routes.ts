@@ -14,9 +14,10 @@ type Pages = {
   "/": {
     params: {};
   };
-  "/docs/:slug": {
+  "/docs/:runtime/:slug?": {
     params: {
-      "slug": string;
+      "runtime": string;
+      "slug"?: string;
     };
   };
 };
@@ -24,7 +25,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/docs/:slug";
+    page: "/" | "/docs/:runtime/:slug?";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -32,7 +33,7 @@ type RouteFiles = {
   };
   "routes/doc.tsx": {
     id: "routes/doc";
-    page: "/docs/:slug";
+    page: "/docs/:runtime/:slug?";
   };
 };
 

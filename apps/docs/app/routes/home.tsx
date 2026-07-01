@@ -1,7 +1,7 @@
 import { DocTemplate } from "../components/blocks/DocTemplate";
 import { MarkdownRenderer } from "../components/ui/MarkdownRenderer";
 import { Callout } from "../components/ui/Callout";
-import { useLoaderData } from "react-router";
+import { useLoaderData, Link } from "react-router";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -31,8 +31,14 @@ export default function Home() {
     <DocTemplate
       title={title}
       description={description}
-      nextPage={{ label: "DSL Syntax", href: "/docs/dsl-syntax" }}
+      nextPage={{ label: "DSL Syntax", href: "/docs/ts/dsl-syntax" }}
+      runtime="ts"
     >
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <Link to="/docs/ts/" className="btn btn-primary text-primary-content border-none px-8">
+          Go to Documentation
+        </Link>
+      </div>
       <MarkdownRenderer content={body} />
     </DocTemplate>
   );

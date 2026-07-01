@@ -1,7 +1,12 @@
 import * as React from "react";
 import { SearchInput } from "../ui/SearchInput";
 
-export function AppHeader() {
+import { Link, useLocation } from "react-router";
+
+export function AppHeader({ runtime = "ts" }: { runtime?: string }) {
+  const location = useLocation();
+  const slug = location.pathname.replace(new RegExp(`^\\/docs\\/${runtime}\\/?`), "");
+
   return (
     <header className="sticky top-0 z-50 bg-base-100 border-b border-base-content/10">
       <div className="flex h-16 items-center px-4 md:px-6 gap-4 max-w-7xl mx-auto w-full">
@@ -48,7 +53,7 @@ export function AppHeader() {
                 <svg className="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0H1.125zm17.363 9.75c3.125 0 5.513 2.6 5.513 5.488 0 1.437-.625 2.875-1.75 3.862-1.375 1.125-3.375 1.75-5.5 1.75-1.5 0-3.375-.25-4.875-.75L12 18.875c1.125.375 2.625.625 4.125.625 1.75 0 3.375-.375 4.375-1.125.875-.625 1.25-1.5 1.25-2.5 0-1.875-1.5-3.25-3.75-3.25-1.5 0-3.125.5-4.25 1.25l-.875-2c1.375-1 3.25-1.75 5.5-1.75v-.375zm-9.375 10.75h-2.25v-8.25H2.5v-2.25h8.625v10.5z" />
                 </svg>
-                ts (Bun)
+                {runtime === "ts" ? "ts (Bun)" : runtime}
                 <svg className="w-3 h-3 opacity-60 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -61,28 +66,30 @@ export function AppHeader() {
                   Select Runtime
                 </li>
                 <li>
-                  <a className="active bg-base-200 text-sm text-base-content font-medium rounded-lg flex items-center justify-between">
+                  <Link to={`/docs/ts/${slug}`} className={runtime === "ts" ? "active bg-base-200 text-sm text-base-content font-medium rounded-lg flex items-center justify-between" : "text-base-content/70 text-sm rounded-lg flex items-center justify-between"}>
                     <span>ts (Bun)</span>
-                    <svg className="w-4 h-4 text-base-content/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </a>
+                    {runtime === "ts" && (
+                      <svg className="w-4 h-4 text-base-content/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </Link>
                 </li>
                 <li>
-                  <a className="text-base-content/50 hover:text-base-content/50 cursor-default text-sm rounded-lg flex items-center justify-between mt-1">
+                  <Link to={`/docs/go/${slug}`} className={runtime === "go" ? "active bg-base-200 text-sm text-base-content font-medium rounded-lg flex items-center justify-between mt-1" : "text-base-content/50 hover:text-base-content/50 cursor-default text-sm rounded-lg flex items-center justify-between mt-1"}>
                     <span>Go</span>
                     <span className="text-[10px] uppercase font-bold tracking-widest text-base-content/50 bg-base-200 px-1.5 py-0.5 rounded">
                       Soon
                     </span>
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a className="text-base-content/50 hover:text-base-content/50 cursor-default text-sm rounded-lg flex items-center justify-between">
+                  <Link to={`/docs/python/${slug}`} className={runtime === "python" ? "active bg-base-200 text-sm text-base-content font-medium rounded-lg flex items-center justify-between" : "text-base-content/50 hover:text-base-content/50 cursor-default text-sm rounded-lg flex items-center justify-between"}>
                     <span>Python</span>
                     <span className="text-[10px] uppercase font-bold tracking-widest text-base-content/50 bg-base-200 px-1.5 py-0.5 rounded">
                       Soon
                     </span>
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

@@ -11,16 +11,17 @@ interface DocTemplateProps {
   children: React.ReactNode;
   nextPage?: { label: string; href: string };
   prevPage?: { label: string; href: string };
+  runtime: string;
 }
 
-export function DocTemplate({ title, description, children, nextPage, prevPage }: DocTemplateProps) {
+export function DocTemplate({ title, description, children, nextPage, prevPage, runtime }: DocTemplateProps) {
   const [headings, setHeadings] = React.useState<Heading[]>([]);
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content flex flex-col font-sans">
-      <AppHeader />
+      <AppHeader runtime={runtime} />
       <div className="flex flex-1 max-w-7xl mx-auto w-full">
-        <AppSidebar />
+        <AppSidebar runtime={runtime} />
         <div className="flex flex-1 justify-between">
           <main className="flex-1 px-4 py-8 md:px-8 max-w-3xl mx-auto w-full min-w-0">
             <article className="max-w-none w-full">
