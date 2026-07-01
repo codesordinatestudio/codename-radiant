@@ -47,7 +47,7 @@ export interface RadiantAST {
     };
     headers?: { enabled?: boolean; };
     secrets?: { enabled?: boolean; };
-    audit?: { enabled?: boolean; };
+    audit?: { enabled?: boolean; secret?: string; };
   };
   monitoring?: {
     enabled?: boolean;

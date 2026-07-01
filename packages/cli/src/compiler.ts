@@ -244,6 +244,24 @@ export function compile(rawAsts: any[]): { schema: any; errors: SemanticError[] 
   validateFields(schema.collections, "collection", seenCollections, errors);
   validateFields(schema.globals, "global", seenCollections, errors);
 
+  // Phase 3: Auto-inject system collections if features are enabled
+  if (schema.security?.audit?.enabled) {
+    schema.collections.push({
+      slug: "radiant_audit_log",
+      uri: "internal://system",
+      fields: [
+        { name: "action", type: "text" },
+        { name: "collection", type: "text", optional: true },
+        { name: "recordId", type: "text", optional: true },
+        { name: "userId", type: "text", optional: true },
+        { name: "metadata", type: "json", optional: true },
+        { name: "hmac", type: "text" },
+        { name: "prevHmac", type: "text", optional: true },
+        { name: "createdAt", type: "date" }
+      ]
+    });
+  }
+
   return { schema, errors };
 }
 

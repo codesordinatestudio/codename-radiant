@@ -17,13 +17,17 @@
     "test": "bun run test:unit",
     "test:unit": "bun test _tests/unit",
     "test:e2e": "bun run scripts/run-e2e.ts",
-    "link:local": "bun test && bun run scripts/link-all.ts"
+    "link:local": "bun test && bun run scripts/link-all.ts",
+    "gen:key": "bun run scripts/generate-api-key.ts"
   },
   "devDependencies": {
+    "@clack/prompts": "^1.6.0",
     "@sinclair/typebox": "^0.34.49",
     "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.0.1",
     "jose": "^6.2.3",
+    "jsonwebtoken": "^9.0.3",
     "turbo": "^2.10.2",
     "typescript": "^7.0.1-rc"
   }

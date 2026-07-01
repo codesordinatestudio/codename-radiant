@@ -10,3 +10,12 @@ collection projects {
     status: ["ready", "building", "failed"] @default("ready");
   }
 }
+
+collection apiKeys {
+  fields: {
+    key: text @unique;
+    ownerName: text;
+    companyName: text;
+    expiresAt: date;
+  }
+}

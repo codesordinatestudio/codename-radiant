@@ -49,13 +49,23 @@ setInterval(async () => {
 await import("./routes");
 await import("./cron");
 
+import jwt from "jsonwebtoken";
+
 // Define a global hook to secure all builder API endpoints with a Bearer token
 app.plugins.push({
   name: "auth-guard",
   beforeRequest: async (ctx) => {
     const authHeader = ctx.request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer RADIANT_BUILDER_SECRET")) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       throw RadiantError.Unauthorized("Unauthorized");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    
+    try {
+      jwt.verify(token, process.env.JWT_SECRET || "radiant-secret-key");
+    } catch (err) {
+      throw RadiantError.Unauthorized("Unauthorized: Invalid API Key");
     }
   },
 });
@@ -63,4 +73,3 @@ app.plugins.push({
 const port = process.env.PORT ? parseInt(process.env.PORT) : 9100;
 app.start({ port });
 console.log(`Radiant Builder API is running on http://localhost:${port}`);
-console.log(`Test API Key (Bearer): RADIANT_BUILDER_SECRET`);

@@ -8,10 +8,12 @@
   },
   "dependencies": {
     "@codesordinatestudio/radiant-bun": "workspace:*",
+    "@codesordinatestudio/radiant-plugin-sqlite": "workspace:*",
     "@radiant/cli": "workspace:*",
-    "@codesordinatestudio/radiant-plugin-sqlite": "workspace:*"
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10"
   }
 }

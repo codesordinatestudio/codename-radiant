@@ -1,8 +1,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import jwt from "jsonwebtoken";
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000";
+const API_KEY = jwt.sign({ owner: "MCP Test Runner" }, process.env.JWT_SECRET || "radiant-secret-key");
 
 const server = new Server(
   {

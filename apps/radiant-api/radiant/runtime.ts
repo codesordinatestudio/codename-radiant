@@ -34,6 +34,28 @@ const internalSchema = {
           "default": "ready"
         }
       ]
+    },
+    {
+      "slug": "apiKeys",
+      "fields": [
+        {
+          "name": "key",
+          "type": "text",
+          "unique": true
+        },
+        {
+          "name": "ownerName",
+          "type": "text"
+        },
+        {
+          "name": "companyName",
+          "type": "text"
+        },
+        {
+          "name": "expiresAt",
+          "type": "date"
+        }
+      ]
     }
   ],
   "globals": [],

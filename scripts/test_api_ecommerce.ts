@@ -1,6 +1,8 @@
 import { execSync } from "child_process";
+import jwt from "jsonwebtoken";
 
 const API_URL = "http://localhost:3000";
+const API_KEY = jwt.sign({ owner: "API Test Runner" }, process.env.JWT_SECRET || "radiant-secret-key");
 
 async function run() {
   console.log("=== Testing Radiant API: E-Commerce ===");

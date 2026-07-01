@@ -10,6 +10,14 @@ export interface Projects {
   status: "ready" | "building" | "failed";
 }
 
+export interface ApiKeys {
+  id: string;
+  key: string;
+  ownerName: string;
+  companyName: string;
+  expiresAt: string;
+}
+
 // 1b. The Populated Models
 export interface ProjectsPopulated {
   id: string;
@@ -17,6 +25,14 @@ export interface ProjectsPopulated {
   apiKey: string;
   targetDir: string;
   status: "ready" | "building" | "failed";
+}
+
+export interface ApiKeysPopulated {
+  id: string;
+  key: string;
+  ownerName: string;
+  companyName: string;
+  expiresAt: string;
 }
 
 // 2. The Create / Update Inputs
@@ -29,6 +45,15 @@ export interface ProjectsCreate {
 
 export type ProjectsUpdate = Partial<ProjectsCreate>;
 
+export interface ApiKeysCreate {
+  key: string;
+  ownerName: string;
+  companyName: string;
+  expiresAt: string;
+}
+
+export type ApiKeysUpdate = Partial<ApiKeysCreate>;
+
 // 3. Query Builder Types
 export interface ProjectsWhereClause {
   projectId?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };
@@ -39,10 +64,21 @@ export interface ProjectsWhereClause {
   or?: ProjectsWhereClause[];
 }
 
+export interface ApiKeysWhereClause {
+  key?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };
+  ownerName?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };
+  companyName?: { eq?: string; neq?: string; like?: string; in?: string[]; nin?: string[]; exists?: boolean };
+  expiresAt?: { eq?: string; neq?: string; in?: Array<string>; nin?: Array<string>; exists?: boolean };
+  and?: ApiKeysWhereClause[];
+  or?: ApiKeysWhereClause[];
+}
+
 // 4. Global Framework Registry
 export type Collections = {
   projects: Projects;
+  apiKeys: ApiKeys;
   __populated: {
   projects: ProjectsPopulated;
+  apiKeys: ApiKeysPopulated;
   }
 };
