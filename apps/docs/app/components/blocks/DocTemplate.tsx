@@ -27,7 +27,7 @@ export function DocTemplate({
       <AppHeader />
       <div className="flex flex-1 max-w-[1440px] mx-auto w-full">
         <AppSidebar />
-        <div className="flex flex-1">
+        <div className="flex flex-1 justify-between">
           <main className="flex-1 px-6 py-12 md:px-12 lg:px-24 max-w-4xl min-w-0">
             <article className="prose prose-slate max-w-none">
               {/* Main Content Area */}

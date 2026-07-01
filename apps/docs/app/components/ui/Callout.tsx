@@ -8,7 +8,7 @@ interface CalloutProps {
 
 export function Callout({ title, children, icon }: CalloutProps) {
   return (
-    <div className="bg-callout-bg text-callout-text p-4 rounded-xl flex items-start gap-3 my-6">
+    <div className="bg-callout-bg text-callout-text p-4 rounded-r-xl rounded-l border-l-4 border-callout-text flex items-start gap-3 my-6">
       <div className="mt-0.5 text-xl">
         {icon || "💡"}
       </div>
