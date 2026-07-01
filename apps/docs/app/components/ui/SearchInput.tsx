@@ -6,7 +6,7 @@ export function SearchInput({ className = "", ...props }: SearchInputProps) {
   return (
     <div className={`relative flex items-center ${className}`}>
       <svg 
-        className="absolute left-3 w-4 h-4 text-gray-400" 
+        className="absolute left-3 w-4 h-4 text-base-content/50" 
         fill="none" 
         stroke="currentColor" 
         viewBox="0 0 24 24"
@@ -15,7 +15,7 @@ export function SearchInput({ className = "", ...props }: SearchInputProps) {
       </svg>
       <input 
         type="text" 
-        className="w-full bg-warm-bg border border-gray-200 rounded-full py-1.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 transition-shadow"
+        className="w-full bg-base-100 border border-base-content/10 rounded-full py-1.5 pl-9 pr-4 text-sm text-base-content placeholder:text-base-content/40 focus:outline-none focus:border-base-content/30 focus:ring-1 focus:ring-base-content/30 transition-shadow"
         {...props}
       />
     </div>

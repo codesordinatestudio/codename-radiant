@@ -1,35 +1,5 @@
 @import "tailwindcss";
-@plugin "daisyui" {
-  themes: false;
-}
-
-@plugin "daisyui/theme" {
-  name: "light";
-  default: true;
-  color-scheme: light;
-  --color-base-100: #ffffff;
-  --color-base-200: #f1f2f7;
-  --color-base-300: #f0f1f9;
-  --color-primary: #0f4c81;
-  --color-primary-content: #efefef;
-  --color-secondary: #2b2e66;
-  --color-base-content: #1f1f1f;
-  --color-accent: #1d9e75;
-  --color-accent-content: #ffffff;
-}
-
-@plugin "daisyui/theme" {
-  name: "dark";
-  prefersdark: true;
-  color-scheme: dark;
-  --color-base-100: #1d232a;
-  --color-base-content: #ddd;
-  --color-primary: #222f4b;
-  --color-primary-content: #efefef;
-  --color-secondary: #003870;
-  --color-accent: #1d9e75;
-  --color-accent-content: #fff;
-}
+@plugin "daisyui";
 
 @theme {
   --font-sans: "Bricolage Grotesque", "Outfit", sans-serif;
@@ -74,13 +44,48 @@ h1 {
 }
 
 h2 {
-  font-size: 26px !important;
+  font-size: 24px !important;
+  margin-top: 2em !important;
+  margin-bottom: 0.2em !important;
 }
 
 h3 {
   font-weight: 700 !important;
   font-size: 15px !important;
   text-transform: capitalize !important;
+}
+
+/* Custom Table Design */
+table {
+  @apply w-full text-sm my-8 border-collapse border-spacing-0;
+}
+
+table th {
+  @apply text-left font-medium text-base-content/50 px-6 py-4 border-none bg-base-100;
+}
+
+table tbody tr:nth-child(odd) {
+  @apply bg-base-200/50;
+}
+
+table tbody tr:nth-child(even) {
+  @apply bg-base-100;
+}
+
+table td {
+  @apply px-6 py-4 border-none text-base-content align-middle;
+}
+
+table td:first-child {
+  @apply font-medium text-base-content/90;
+}
+
+table td code {
+  @apply bg-base-100 border border-base-content/10 px-2 py-0.5 rounded text-[11px] font-mono text-base-content/60 uppercase shadow-[0_1px_2px_rgba(0,0,0,0.02)];
+}
+
+table tbody tr:last-child {
+  @apply border-b-2 border-base-content/5;
 }
 
 pre .code-highlight {

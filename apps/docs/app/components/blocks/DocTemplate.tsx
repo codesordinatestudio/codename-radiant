@@ -17,12 +17,12 @@ export function DocTemplate({ title, description, children, nextPage, prevPage }
   const [headings, setHeadings] = React.useState<Heading[]>([]);
 
   return (
-    <div className="min-h-screen bg-warm-bg text-text-main flex flex-col font-sans">
+    <div className="min-h-screen bg-base-100 text-base-content flex flex-col font-sans">
       <AppHeader />
-      <div className="flex flex-1 max-w-360 mx-auto w-full">
+      <div className="flex flex-1 max-w-7xl mx-auto w-full">
         <AppSidebar />
         <div className="flex flex-1 justify-between">
-          <main className="flex-1 px-6 py-6 md:px-12 lg:px-24 max-w-4xl min-w-0">
+          <main className="flex-1 px-4 py-8 md:px-8 max-w-3xl mx-auto w-full min-w-0">
             <article className="max-w-none w-full">
               {/* Main Content Area */}
               <div className="space-y-12">
@@ -33,8 +33,8 @@ export function DocTemplate({ title, description, children, nextPage, prevPage }
 
               {/* Pagination Footer */}
               {(prevPage || nextPage) && (
-                <div className="mt-20 pt-8 border-t border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Next Steps</h3>
+                <div className="mt-20 pt-8 border-t border-base-content/10">
+                  <h3 className="text-xl font-bold text-base-content mb-6">Next Steps</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {prevPage ? (
                       <PaginationCard direction="prev" label={prevPage.label} href={prevPage.href} />

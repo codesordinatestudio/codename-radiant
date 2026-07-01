@@ -45,8 +45,8 @@ export function OnThisPage({ headings }: OnThisPageProps) {
   return (
     <aside className="hidden xl:block w-56 shrink-0">
       <div className="sticky top-24">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">On This Page</h4>
-        <nav className="space-y-1 border-l border-gray-200">
+        <h4 className="text-sm font-semibold text-base-content mb-3">On This Page</h4>
+        <nav className="space-y-1 border-l border-base-content/10">
           {tocHeadings.map((heading, index) => {
             const isActive = activeId === heading.id;
             return (
@@ -55,8 +55,8 @@ export function OnThisPage({ headings }: OnThisPageProps) {
                 href={`#${heading.id}`}
                 className={`block text-sm leading-snug py-1 border-l-2 -ml-px transition-colors ${
                   isActive
-                    ? "border-gray-800 text-gray-900 font-medium pl-3"
-                    : "border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300 pl-3"
+                    ? "border-base-content/80 text-base-content font-medium pl-3"
+                    : "border-transparent text-base-content/60 hover:text-base-content hover:border-base-content/30 pl-3"
                 } ${heading.level === 3 ? "pl-6" : ""}`}
               >
                 {heading.text}

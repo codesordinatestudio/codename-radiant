@@ -1,5 +1,4 @@
 import * as React from "react";
-import { SearchInput } from "../ui/SearchInput";
 import { Link, useLocation } from "react-router";
 
 const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] = [
@@ -77,8 +76,7 @@ export function AppSidebar() {
 
   return (
     <aside className="w-64 h-[calc(100vh-4rem)] overflow-y-auto border-r border-base-content/10 bg-base-100 sticky top-16 hidden md:block shrink-0">
-      <div className="p-4">
-        <SearchInput placeholder="Search docs" className="mb-6" />
+      <div className="p-4 pt-6">
 
         <ul className="menu w-full p-0">
           {NAV_GROUPS.map((group) => {

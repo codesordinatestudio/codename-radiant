@@ -4,21 +4,24 @@ import { SearchInput } from "../ui/SearchInput";
 export function AppHeader() {
   return (
     <header className="sticky top-0 z-50 bg-base-100 border-b border-base-content/10">
-      <div className="flex h-16 items-center px-4 md:px-6 gap-4">
+      <div className="flex h-16 items-center px-4 md:px-6 gap-4 max-w-7xl mx-auto w-full">
         {/* Logo, Version & Language */}
         <div className="flex items-center gap-4 min-w-fit">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-content shadow-sm">
               R
             </div>
-            <a href="/" className="font-semibold text-lg hidden sm:block text-base-content hover:opacity-80 transition-opacity">
+            <a
+              href="/"
+              className="font-semibold text-lg hidden sm:block text-base-content hover:opacity-80 transition-opacity"
+            >
               Radiant
             </a>
           </div>
 
           <div className="hidden md:flex items-center gap-1 ml-2 pl-4 border-l border-base-content/10">
             {/* Version Picker */}
-            <div className="dropdown dropdown-hover">
+            <div className="dropdown dropdown-hover bg-base-300">
               <div tabIndex={0} role="button" className="btn btn-xs btn-ghost text-base-content/60 font-normal px-2">
                 v0.1.0
                 <svg className="w-3 h-3 opacity-60 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,8 +39,12 @@ export function AppHeader() {
             </div>
 
             {/* Language Picker */}
-            <div className="dropdown dropdown-hover">
-              <div tabIndex={0} role="button" className="btn btn-xs btn-ghost text-base-content/80 font-medium px-2 gap-1.5">
+            <div className="dropdown dropdown-hover bg-base-300">
+              <div
+                tabIndex={0}
+                role="button"
+                className="btn btn-xs btn-ghost text-base-content/80 font-medium px-2 gap-1.5"
+              >
                 <svg className="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0H1.125zm17.363 9.75c3.125 0 5.513 2.6 5.513 5.488 0 1.437-.625 2.875-1.75 3.862-1.375 1.125-3.375 1.75-5.5 1.75-1.5 0-3.375-.25-4.875-.75L12 18.875c1.125.375 2.625.625 4.125.625 1.75 0 3.375-.375 4.375-1.125.875-.625 1.25-1.5 1.25-2.5 0-1.875-1.5-3.25-3.75-3.25-1.5 0-3.125.5-4.25 1.25l-.875-2c1.375-1 3.25-1.75 5.5-1.75v-.375zm-9.375 10.75h-2.25v-8.25H2.5v-2.25h8.625v10.5z" />
                 </svg>
@@ -93,7 +100,12 @@ export function AppHeader() {
             <a href="/" className="hover:text-base-content transition-colors">
               Docs
             </a>
-            <a href="/playground" target="_blank" rel="noreferrer" className="hover:text-base-content transition-colors">
+            <a
+              href="/playground"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-base-content transition-colors"
+            >
               Playground
             </a>
           </nav>
