@@ -1,145 +1,87 @@
 # Field Types
 
-Radiant supports 15 field types. Each maps to a specific database column type and TypeScript type.
+Radiant supports 15 field types. Each maps to a specific database column type and TypeScript type. You can also nest objects as field types.
 
 ## Scalar Types
 
-### `text`
+| Type | SQL Storage | TypeScript | Example |
+|---|---|---|---|
+| `text` | `TEXT` | `string` | `name: text` |
+| `textarea` | `TEXT` | `string` | `description: textarea` |
+| `richtext` | `JSONB` | `any` | `body: richtext` |
+| `email` | `TEXT` | `string` | `email: email @unique` |
+| `password` | `TEXT` (hashed) | `string` | `password: password` |
+| `boolean` | `BOOLEAN` | `boolean` | `completed: boolean @default(false)` |
+| `integer` | `INTEGER` | `number` | `viewCount: integer` |
+| `number` | `NUMERIC` | `number` | `price: number` |
+| `date` | `TIMESTAMPTZ` | `string` | `publishedAt: date @optional` |
 
-Short text. Maps to `TEXT` in SQL databases, `string` in TypeScript.
+**`text` vs `textarea`** — Both store as `TEXT`. The difference is semantic: `textarea` signals the admin UI to render a multi-line input.
 
-```radiant
-name: text
-```
+**`password`** — Hashed automatically on write (bcrypt/argon2). Omitted from the generated model interface and API responses, but included in the `Create` input type.
 
-### `textarea`
+**`email`** — Validated against an email pattern on create/update.
 
-Long-form text. Same storage as `text` but signals to the admin UI to render a textarea input.
-
-```radiant
-description: textarea
-```
-
-### `richtext`
-
-Rich text (JSON-serialised blocks). Maps to `JSONB`.
-
-```radiant
-body: richtext
-```
-
-### `email`
-
-Email address. Maps to `TEXT`. The runtime validates the format on create/update.
-
-```radiant
-email: email @unique
-```
-
-### `password`
-
-Hashed password. Maps to `TEXT` but is never returned in API responses. The runtime hashes it automatically on write using bcrypt/argon2.
-
-```radiant
-password: password
-```
-
-> **Note:** Password fields are omitted from the generated TypeScript model interface but included in the `Create` input type.
-
-### `boolean`
-
-True/false. Maps to `BOOLEAN`.
-
-```radiant
-completed: boolean @default(false)
-```
-
-### `integer`
-
-Whole number. Maps to `INTEGER`.
-
-```radiant
-viewCount: integer
-```
-
-### `number`
-
-Decimal number. Maps to `NUMERIC`.
-
-```radiant
-price: number
-```
-
-### `date`
-
-ISO 8601 date/datetime. Maps to `TIMESTAMPTZ` in SQL databases.
-
-```radiant
-publishedAt: date @optional
-```
+**`date`** — Stored as `TIMESTAMPTZ`. Values are ISO 8601 strings in TypeScript.
 
 ## Selection Types
 
 ### `select`
 
-An enumerated type with a fixed set of string options. Maps to `TEXT` with a TypeScript union type.
+Enumerated type with a fixed set of string options. Requires at least one option — the compiler errors on zero.
 
 ```radiant
 status: select("draft", "published", "archived")
 ```
 
-Generated TypeScript:
 ```typescript
+// Generated TypeScript
 status: "draft" | "published" | "archived"
 ```
 
-> **Validation:** `select` requires at least one option. The compiler produces an error if zero options are provided.
-
 ### `multiselect`
 
-Multiple string selections. Maps to `TEXT[]` in SQL databases, `string[]` in TypeScript.
+Multiple string selections stored as `TEXT[]`.
 
 ```radiant
 tags: multiselect("work", "personal", "urgent")
 ```
 
-### `enum` (shorthand)
+```typescript
+tags: string[]
+```
 
-An inline enum defined as an array literal. Maps to `TEXT` with a TypeScript union type.
+### Enum shorthand
+
+An inline enum defined as an array literal. Same result as `select` but more concise for simple cases.
 
 ```radiant
 role: ["admin", "user"] @default("user")
 ```
 
-Generated TypeScript:
 ```typescript
 role: "admin" | "user"
 ```
 
-## Relationship Types
+## Relationship Type
 
 ### `relationship`
 
-A foreign key reference to another collection. Maps to a UUID/string in the database, but resolves to the full referenced object in "populated" queries.
+A foreign key reference to another collection. The first argument is the target collection slug — it must exist, or the compiler produces a semantic error.
 
 ```radiant
 author: relationship("users")
 ```
 
-| Property | Description |
-|---|---|
-| First argument | The target collection slug (must exist). |
-
-Generated TypeScript:
 ```typescript
-// In the base model (unpopulated):
-author: string;
+// Base model (unpopulated):
+author: string
 
-// In the Populated model:
-author: Users;
+// Populated model:
+author: Users
 ```
 
-You can mark a relationship as an array using `[]`:
+Mark a relationship as an array with `[]`:
 
 ```radiant
 tags: relationship("tags")[]
@@ -147,35 +89,19 @@ tags: relationship("tags")[]
 
 ## Complex Types
 
-### `json`
+| Type | SQL Storage | TypeScript | Example |
+|---|---|---|---|
+| `json` | `JSONB` | `any` | `metadata: json @optional` |
+| `upload` | `JSONB` | `any` | `avatar: upload @optional` |
+| `array(type)` | `JSONB` | `T[]` | `scores: array(integer)` |
 
-Arbitrary JSON. Maps to `JSONB`.
+**`array`** — Wraps another type. You can also use the `[]` suffix on any type: `tags: text[]`.
 
-```radiant
-metadata: json @optional
-```
+**`upload`** — Stores file metadata (path, size, MIME type) as JSON.
 
-### `array`
+## Nested Object Fields
 
-An array of values. When used as `array(type)`, it creates an array of the inner type. Maps to `JSONB`.
-
-```radiant
-scores: array(integer)
-```
-
-> **Note:** You can also use the `[]` suffix on any type to mark it as an array: `tags: text[]`.
-
-### `upload`
-
-File upload. Maps to `JSONB` (stores file metadata — path, size, MIME type).
-
-```radiant
-avatar: upload @optional
-```
-
-## Object/Nested Fields
-
-Fields can contain nested objects with their own field definitions:
+Fields can contain nested objects with their own field definitions. The nested object is stored as `JSONB`.
 
 ```radiant
 collection products {
@@ -190,44 +116,22 @@ collection products {
 }
 ```
 
-This creates a nested JSON object field. The generated TypeScript type is:
-
 ```typescript
+// Generated TypeScript
 dimensions: { width: number; height: number; unit: string }
 ```
 
-## Type Reference Table
-
-| Field Type | SQL Storage | TypeScript Type | Notes |
-|---|---|---|---|
-| `text` | `TEXT` | `string` | Short text |
-| `textarea` | `TEXT` | `string` | Long text (admin UI renders textarea) |
-| `richtext` | `JSONB` | `any` | Rich text blocks |
-| `email` | `TEXT` | `string` | Validated email |
-| `password` | `TEXT` (hashed) | `string` | Omitted from model responses |
-| `boolean` | `BOOLEAN` | `boolean` | |
-| `integer` | `INTEGER` | `number` | Whole numbers |
-| `number` | `NUMERIC` | `number` | Decimal numbers |
-| `date` | `TIMESTAMPTZ` | `string` | ISO 8601 |
-| `select(...)` | `TEXT` | `"a" \| "b" \| ...` | Requires ≥1 option |
-| `multiselect(...)` | `TEXT[]` | `string[]` | |
-| `["a", "b"]` (enum) | `TEXT` | `"a" \| "b"` | Inline enum shorthand |
-| `relationship("x")` | `UUID` / `TEXT` | `string` (base), `X` (populated) | Foreign key |
-| `json` | `JSONB` | `any` | Arbitrary JSON |
-| `upload` | `JSONB` | `any` | File metadata |
-| nested object | `JSONB` | `{ ... }` | Inline object type |
-
 ## Auto-Generated Fields
 
-Every collection automatically includes these fields — you do not declare them:
+Every collection automatically includes these — you never declare them:
 
-| Field | Type | Description |
+| Field | TypeScript | Description |
 |---|---|---|
-| `id` | `string` (UUID) | Primary key, auto-generated. |
-| `createdAt` | `string` (ISO date) | Set on creation. |
-| `updatedAt` | `string` (ISO date) | Updated on every modification. |
+| `id` | `string` (UUID) | Primary key, auto-generated |
+| `createdAt` | `string` | ISO timestamp, set on creation |
+| `updatedAt` | `string` | ISO timestamp, updated on every modification |
 
 ## Related
 
 - [Decorators](./decorators) — `@unique`, `@optional`, `@default`, `@hidden`, `@index`
-- [Collections](./collections) — Collection block structure
+- [Collections](./collections) — Where fields are defined

@@ -4,6 +4,9 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter()],
+  ssr: {
+    noExternal: ["@uiw/react-markdown-preview"],
+  },
   resolve: {
     tsconfigPaths: true,
   },

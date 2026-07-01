@@ -202,5 +202,5 @@ The scaffold creates a `package.json` with:
 ## Related
 
 - [CLI Reference](./cli-reference) — Commands that create and build this structure
-- [Code Generation](./code-generation) — What the generated files contain
+- [CLI Reference](./cli-reference) — What the generated files contain
 - [Database Sync](./database-sync) — How `schema.json` drives database changes

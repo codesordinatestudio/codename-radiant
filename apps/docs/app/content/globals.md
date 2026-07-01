@@ -95,4 +95,4 @@ Globals go through the same field validation as collections:
 
 - [Collections](./collections) — Collections share the same field/decorator system
 - [Field Types](./field-types) — All available field types
-- [Code Generation](./code-generation) — How globals are represented in generated code
+- [CLI Reference](./cli-reference) — How globals are represented in generated code

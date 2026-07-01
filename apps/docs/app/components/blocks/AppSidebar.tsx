@@ -28,12 +28,10 @@ const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] 
     ],
   },
   {
-    title: "Internals",
+    title: "Reference",
     items: [
-      { label: "Code Generation", slug: "code-generation" },
       { label: "Environment Variables", slug: "environment-variables" },
       { label: "Project Structure", slug: "project-structure" },
-      { label: "Compiler Pipeline", slug: "compiler-pipeline" },
     ],
   },
 ];
@@ -47,13 +45,13 @@ export function AppSidebar() {
       <div className="p-4">
         <SearchInput placeholder="Search docs" className="mb-6" />
 
-        <nav className="space-y-6">
+        <nav className="space-y-4">
           {NAV_GROUPS.map((group) => (
             <div key={group.title}>
-              <h3 className="px-3 text-sm font-semibold text-gray-900 mb-2">
+              <h3 className="px-3 text-[13px] font-bold text-gray-900 mb-1 tracking-wide uppercase">
                 {group.title}
               </h3>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const href = item.slug === "" ? "/" : `/docs/${item.slug}`;
                   const isActive = currentSlug === item.slug || (item.slug === "" && pathname === "/");
@@ -61,7 +59,7 @@ export function AppSidebar() {
                     <a
                       key={item.slug}
                       href={href}
-                      className={`flex items-center px-3 py-1.5 ml-1 rounded-lg text-sm transition-colors ${
+                      className={`flex items-center px-3 py-1 ml-1 rounded-lg text-[13px] transition-colors ${
                         isActive
                           ? "bg-gray-200/50 text-gray-900 font-medium"
                           : "text-gray-600 hover:bg-gray-100"

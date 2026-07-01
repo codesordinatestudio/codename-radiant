@@ -1,15 +1,39 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  color-scheme: light;
+  --color-base-100: #ffffff;
+  --color-base-200: #f1f2f7;
+  --color-base-300: #f0f1f9;
+  --color-primary: #0f4c81;
+  --color-primary-content: #efefef;
+  --color-secondary: #2b2e66;
+  --color-base-content: #1f1f1f;
+  --color-accent: #1d9e75;
+  --color-accent-content: #ffffff;
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #1d232a;
+  --color-base-content: #ddd;
+  --color-primary: #222f4b;
+  --color-primary-content: #efefef;
+  --color-secondary: #003870;
+  --color-accent: #1d9e75;
+  --color-accent-content: #fff;
+}
 
 @theme {
   --font-sans: "Bricolage Grotesque", "Outfit", sans-serif;
   --font-display: "Recursive", ui-sans-serif, system-ui, sans-serif;
-  
-  --color-warm-bg: #faf9f6;
-  --color-warm-surface: #f2efe9;
-  --color-text-main: #1a1a1a;
-  --color-callout-bg: #eaf3ee;
-  --color-callout-text: #1d3d2c;
 }
 
 .font-sans,
@@ -34,6 +58,36 @@
 
 html,
 body {
-  @apply bg-warm-bg text-text-main font-sans;
+  @apply bg-base-100 font-sans;
   min-height: 100vh;
+}
+
+h1,
+h2 {
+  font-weight: 900 !important;
+  font-family: var(--font-sans) !important;
+  text-transform: capitalize !important;
+}
+
+h1 {
+  font-size: 26px !important;
+}
+
+h2 {
+  font-size: 20px !important;
+}
+
+h3 {
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  text-transform: capitalize !important;
+}
+
+pre .code-highlight {
+  font-family: sans-serif !important;
+  @apply bg-base-200! px-6! py-6! rounded-lg! shadow! leading-5!;
+}
+
+.code-highlight * {
+  background-color: transparent !important;
 }

@@ -118,4 +118,4 @@ The argument value follows the same value rules as any DSL value:
 
 - [Field Types](./field-types) — All available field types
 - [Collections](./collections) — Where fields are defined
-- [Code Generation](./code-generation) — How decorators affect generated TypeScript
+- [CLI Reference](./cli-reference) — How decorators affect generated TypeScript

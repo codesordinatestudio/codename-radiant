@@ -174,5 +174,5 @@ SURREAL_DB=test
 ## Related
 
 - [CLI Reference](./cli-reference) — All CLI commands
-- [Code Generation](./code-generation) — What `schema.json` contains
+- [Code Generation](./cli-reference) — What `schema.json` contains
 - [Config Block](./config-block) — The `migrate` config option

@@ -104,7 +104,7 @@ The `env` completion appears in field type contexts with documentation about the
 
 ## Formatting
 
-The formatter (`packages/cli/src/lsp/formatter.ts`) uses the parser's CST to produce consistent formatting:
+The formatter uses the parser to produce consistent formatting:
 
 - 2-space indentation
 - Consistent property separator (no trailing commas/semicolons)

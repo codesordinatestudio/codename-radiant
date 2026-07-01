@@ -52,11 +52,9 @@ radiant generate --runtime ts --dir ./radiant
 **What it does:**
 
 1. Finds all `.radiant` files in the `radiant/` directory (recursively)
-2. Lexes each file (tokenises the source)
-3. Parses the token stream into a CST
-4. Visits the CST to produce an AST
-5. Compiles all ASTs into a unified schema (with semantic validation)
-6. Generates output files:
+2. Lexes and parses each file
+3. Compiles all ASTs into a unified schema (with semantic validation)
+4. Generates output files:
    - `radiant/runtime/schema.json` — compiled schema
    - `radiant/runtime/runtime.ts` — runtime entry point
    - `radiant-types.ts` — TypeScript types (at project root)

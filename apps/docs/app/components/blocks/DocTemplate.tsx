@@ -13,25 +13,19 @@ interface DocTemplateProps {
   prevPage?: { label: string; href: string };
 }
 
-export function DocTemplate({
-  title,
-  description,
-  children,
-  nextPage,
-  prevPage,
-}: DocTemplateProps) {
+export function DocTemplate({ title, description, children, nextPage, prevPage }: DocTemplateProps) {
   const [headings, setHeadings] = React.useState<Heading[]>([]);
 
   return (
     <div className="min-h-screen bg-warm-bg text-text-main flex flex-col font-sans">
       <AppHeader />
-      <div className="flex flex-1 max-w-[1440px] mx-auto w-full">
+      <div className="flex flex-1 max-w-360 mx-auto w-full">
         <AppSidebar />
         <div className="flex flex-1 justify-between">
-          <main className="flex-1 px-6 py-12 md:px-12 lg:px-24 max-w-4xl min-w-0">
-            <article className="prose prose-slate max-w-none">
+          <main className="flex-1 px-6 py-6 md:px-12 lg:px-24 max-w-4xl min-w-0">
+            <article className="max-w-none w-full">
               {/* Main Content Area */}
-              <div className="mt-8 space-y-12">
+              <div className="space-y-12">
                 {React.cloneElement(children as React.ReactElement<any>, {
                   onHeadingsChange: setHeadings,
                 })}
@@ -44,10 +38,10 @@ export function DocTemplate({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {prevPage ? (
                       <PaginationCard direction="prev" label={prevPage.label} href={prevPage.href} />
-                    ) : <div />}
-                    {nextPage && (
-                      <PaginationCard direction="next" label={nextPage.label} href={nextPage.href} />
+                    ) : (
+                      <div />
                     )}
+                    {nextPage && <PaginationCard direction="next" label={nextPage.label} href={nextPage.href} />}
                   </div>
                 </div>
               )}

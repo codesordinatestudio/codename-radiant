@@ -48,12 +48,10 @@ const DOC_ORDER = [
   "decorators",
   "globals",
   "cli-reference",
-  "code-generation",
-  "environment-variables",
   "editor-support",
   "database-sync",
+  "environment-variables",
   "project-structure",
-  "compiler-pipeline",
 ];
 
 function getNav(currentPath: string): { prev?: { label: string; href: string }; next?: { label: string; href: string } } {
