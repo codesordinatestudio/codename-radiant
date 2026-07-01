@@ -30,17 +30,6 @@ export function DocTemplate({
         <div className="flex flex-1">
           <main className="flex-1 px-6 py-12 md:px-12 lg:px-24 max-w-4xl min-w-0">
             <article className="prose prose-slate max-w-none">
-              {title && (
-                <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-                  {title}
-                </h1>
-              )}
-              {description && (
-                <p className="text-lg text-gray-600 mb-10 leading-relaxed">
-                  {description}
-                </p>
-              )}
-
               {/* Main Content Area */}
               <div className="mt-8 space-y-12">
                 {React.cloneElement(children as React.ReactElement<any>, {

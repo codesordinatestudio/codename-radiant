@@ -2,8 +2,8 @@
 @plugin "daisyui";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: "Bricolage Grotesque", "Outfit", sans-serif;
+  --font-display: "Recursive", ui-sans-serif, system-ui, sans-serif;
   
   --color-warm-bg: #faf9f6;
   --color-warm-surface: #f2efe9;
@@ -12,8 +12,28 @@
   --color-callout-text: #1d3d2c;
 }
 
+.font-sans,
+.font-normal {
+  font-family: var(--font-sans);
+}
+
+.font-bold {
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+.font-semibold {
+  font-family: var(--font-sans);
+  font-weight: 700;
+}
+
+.font-medium {
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
 html,
 body {
-  @apply bg-warm-bg text-text-main;
+  @apply bg-warm-bg text-text-main font-sans;
   min-height: 100vh;
 }

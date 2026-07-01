@@ -64,7 +64,7 @@ export function MarkdownRenderer({ content, onHeadingsChange }: MarkdownRenderer
   }, [headings, onHeadingsChange]);
 
   return (
-    <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:scroll-mt-20 prose-a:text-blue-600">
+    <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:scroll-mt-20 prose-strong:font-bold prose-a:text-blue-600 font-sans">
       <Markdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -83,22 +83,22 @@ export function MarkdownRenderer({ content, onHeadingsChange }: MarkdownRenderer
 
             // Otherwise, render as inline code snippet
             return (
-              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm text-gray-800" {...props}>
+              <kbd className="kbd kbd-sm" {...props}>
                 {children}
-              </code>
+              </kbd>
             );
           },
           h1: ({ children }: any) => {
             const text = extractText(children);
-            return <h1 id={slugify(text)}>{children}</h1>;
+            return <h1 id={slugify(text)} className="border-b border-gray-200 pb-3 mb-6 mt-8">{children}</h1>;
           },
           h2: ({ children }: any) => {
             const text = extractText(children);
-            return <h2 id={slugify(text)}>{children}</h2>;
+            return <h2 id={slugify(text)} className="border-b border-gray-200 pb-2 mb-4 mt-8">{children}</h2>;
           },
           h3: ({ children }: any) => {
             const text = extractText(children);
-            return <h3 id={slugify(text)}>{children}</h3>;
+            return <h3 id={slugify(text)} className="border-b border-gray-200 pb-2 mb-4 mt-6">{children}</h3>;
           },
           h4: ({ children }: any) => {
             const text = extractText(children);
@@ -112,6 +112,16 @@ export function MarkdownRenderer({ content, onHeadingsChange }: MarkdownRenderer
             const text = extractText(children);
             return <h6 id={slugify(text)}>{children}</h6>;
           },
+          table: ({ children, ...props }: any) => (
+            <div className="overflow-x-auto my-6">
+              <table className="table table-zebra w-full" {...props}>
+                {children}
+              </table>
+            </div>
+          ),
+          thead: ({ children, ...props }: any) => <thead {...props}>{children}</thead>,
+          th: ({ children, ...props }: any) => <th {...props}>{children}</th>,
+          td: ({ children, ...props }: any) => <td {...props}>{children}</td>,
         }}
       >
         {content}

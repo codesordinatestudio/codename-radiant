@@ -1,6 +1,6 @@
 import { DocTemplate } from "../components/blocks/DocTemplate";
 import { MarkdownRenderer } from "../components/ui/MarkdownRenderer";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useLocation } from "react-router";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -15,30 +15,16 @@ export async function loader({ params }: { params: { slug: string } }) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  // Extract the first H1 as title, and first paragraph as description
-  const titleMatch = /^#\s+(.+)$/m.exec(markdown);
-  const title = titleMatch ? titleMatch[1] : undefined;
-
-  // Strip the title from markdown body so MarkdownRenderer doesn't duplicate it
-  const body = titleMatch
-    ? markdown.slice(0, titleMatch.index) + markdown.slice(titleMatch.index + titleMatch[0].length).replace(/^\n+/, "")
-    : markdown;
-
-  // Extract first paragraph as description (skip markdown links/code)
-  const descMatch = body
-    .split("\n")
-    .find((line) => line.trim().length > 0 && !line.startsWith("#") && !line.startsWith("```") && !line.startsWith("|") && !line.startsWith("-"));
-
-  const description = descMatch ? descMatch.replace(/[*_`]/g, "").trim() : undefined;
-
-  return { title, description, body };
+  // Just return the raw markdown to be handled entirely by MarkdownRenderer
+  return { title: slug, description: undefined, body: markdown };
 }
 
 export default function DocPage() {
   const { title, description, body } = useLoaderData<typeof loader>();
+  const location = useLocation();
 
   // Build prev/next navigation based on known doc order
-  const nav = getNav(window.location.pathname);
+  const nav = getNav(location.pathname);
 
   return (
     <DocTemplate
