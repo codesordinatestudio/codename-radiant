@@ -10,7 +10,7 @@ import { visitorInstance } from './parser/visitor';
 import { compile } from './compiler';
 import { generateTypeScriptTypes, generateTypeScriptRuntime } from './generator/ts';
 import { mkdirSync } from 'fs';
-function findRadiantFiles(dir: string): string[] {
+export function findRadiantFiles(dir: string): string[] {
   let results: string[] = [];
   try {
     const list = readdirSync(dir);

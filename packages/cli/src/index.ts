@@ -63,4 +63,12 @@ program.command('db:sync')
     await dbSyncCommand(options);
   });
 
+program.command('format')
+  .description('Format all .radiant files in the current directory')
+  .option('-d, --dir <path>', 'Path to the radiant directory')
+  .action(async (options) => {
+    const { formatCommand } = await import('./format');
+    await formatCommand(options);
+  });
+
 program.parse(process.argv);

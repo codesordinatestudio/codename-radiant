@@ -5,7 +5,8 @@ export class RadiantParser extends CstParser {
   constructor() {
     super(L.allTokens, {
       recoveryEnabled: true,
-      maxLookahead: 2
+      maxLookahead: 2,
+      nodeLocationTracking: "onlyOffsets"
     });
     this.performSelfAnalysis();
   }

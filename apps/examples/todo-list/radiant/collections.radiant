@@ -10,7 +10,7 @@ collection users {
 
 collection todos {
   fields: {
-    title: text,
+  title: text,
     completed: boolean @default(false),
     author: relationship("users")
   };

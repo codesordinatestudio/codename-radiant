@@ -14,7 +14,7 @@ export async function runHealthCheck(
   adapter: RadiantAdapter,
   cache?: CacheStore,
 ): Promise<HealthCheckResult> {
-  const startTime = process.uptime();
+  const uptime = process.uptime();
   const checks: HealthCheckResult["checks"] = {
     database: { status: "ok" },
   };
@@ -65,7 +65,7 @@ export async function runHealthCheck(
   return {
     status,
     timestamp: new Date().toISOString(),
-    uptime: Math.round(startTime),
+    uptime: Math.round(uptime),
     checks,
   };
 }

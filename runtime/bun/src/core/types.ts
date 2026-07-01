@@ -27,6 +27,10 @@ export interface RadiantAST {
           enabled?: boolean;
         };
       };
+      apiKey?: {
+        header?: string;
+        enabled?: boolean;
+      };
       passwordPolicy?: {
         minLength?: number;
         requireUppercase?: boolean;
@@ -48,6 +52,7 @@ export interface RadiantAST {
     headers?: { enabled?: boolean; };
     secrets?: { enabled?: boolean; };
     audit?: { enabled?: boolean; secret?: string; };
+    csrfTrustedOrigins?: string[];
   };
   monitoring?: {
     enabled?: boolean;

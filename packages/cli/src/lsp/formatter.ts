@@ -2,7 +2,7 @@ import type { CstNode, IToken } from 'chevrotain';
 import { RadiantLexer } from '../parser/lexer';
 import { parserInstance } from '../parser/parser';
 
-const INDENT = '  '; // 2-space indent
+const INDENT = '    '; // 4 spaces (double tab)
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 

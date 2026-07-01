@@ -12,7 +12,7 @@ describe('Formatter', () => {
 apiPrefix: "/api"
 }`;
     const expected = `config {
-  apiPrefix: "/api"
+    apiPrefix: "/api"
 }
 `;
     expect(formatRadiant(raw)).toBe(expected);
@@ -26,10 +26,10 @@ name: string;
 }
 }`;
     const expected = `collection users {
-  auth: true;
-  fields: {
-    name: string;
-  }
+    auth: true;
+    fields: {
+        name: string;
+    }
 }
 `;
     expect(formatRadiant(raw)).toBe(expected);
@@ -46,12 +46,12 @@ cors: true,
 }
 }`;
     const expected = `config {
-  security: {
-    auth: {
-      jwt: true
+    security: {
+        auth: {
+            jwt: true
+        }
+        cors: true
     }
-    cors: true
-  }
 }
 `;
     expect(formatRadiant(raw)).toBe(expected);

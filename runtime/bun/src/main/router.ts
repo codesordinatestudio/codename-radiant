@@ -6,6 +6,7 @@ import type { RadiantRuntime } from "./runtime";
 import type { RadiantAST } from "../core/types";
 import type { RadiantRouteContext, RadiantParams, RadiantQuery } from "../core/request";
 import { methodNotAllowed, notFound, toResponse, type BunRouteResult } from "../core/response";
+import type { RadiantMonitoringAPI } from "../monitoring";
 
 export type RadiantRouteHandler<
   TCollections extends Record<string, any> = any,
@@ -113,8 +114,7 @@ export interface RadiantNativeRouteOptions<TState = unknown> {
    */
   csrfTrustedOrigins?: string[];
   radiant?: RadiantRuntime;
-  monitoring?: any;
-  security?: any;
+  monitoring?: RadiantMonitoringAPI;
   requestId?: { enabled?: boolean };
   /** Optional rate limiter checked before the route handler runs. */
   rateLimiter?: { check: (request: Request) => Promise<Response | null> | Response | null };
@@ -676,14 +676,8 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
                 if (hasMonitoring && options.monitoring) {
                   const durationMs = Math.round(performance.now() - startedAt);
                   const message = syncErr instanceof Error ? syncErr.message : String(syncErr);
-                  const promises: Promise<any>[] = [];
-                  const ep1 = options.monitoring.emit({ type: "runtime.error", requestId, method: request.method, path: pathname, status: errResponse.status, durationMs, severity: "error", message, source: "bun", metadata: { route: route.path } });
-                  const ep2 = options.monitoring.emit({ type: "request.error", requestId, method: request.method, path: pathname, status: errResponse.status, durationMs, severity: "error", message, source: "bun" });
-                  if (ep1 instanceof Promise) promises.push(ep1);
-                  if (ep2 instanceof Promise) promises.push(ep2);
-                  if (promises.length > 0) {
-                    return Promise.all(promises).then(() => withHeaders(errResponse, requestResponseHeaders(handlerRequest, requestHeaders)));
-                  }
+                  options.monitoring.emit({ type: "runtime.error", requestId, method: request.method, path: pathname, status: errResponse.status, durationMs, severity: "error", message, source: "bun", metadata: { route: route.path } });
+                  options.monitoring.emit({ type: "request.error", requestId, method: request.method, path: pathname, status: errResponse.status, durationMs, severity: "error", message, source: "bun" });
                 }
                 return withHeaders(errResponse, requestResponseHeaders(handlerRequest, requestHeaders));
               }
@@ -698,9 +692,8 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
               
               if (hasMonitoring && options.monitoring) {
                 const durationMs = Math.round(performance.now() - startedAt);
-                const promises: Promise<any>[] = [];
                 
-                const p1 = options.monitoring.emit({
+                options.monitoring.emit({
                   type: "request.completed",
                   requestId,
                   method: request.method,
@@ -710,9 +703,8 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
                   userId: user?.id,
                   source: "bun",
                 });
-                if (p1 instanceof Promise) promises.push(p1);
 
-                const p2 = options.monitoring.emit({
+                options.monitoring.emit({
                   type: "trace",
                   requestId,
                   method: request.method,
@@ -722,10 +714,9 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
                   source: "bun",
                   metadata: { route: route.path },
                 });
-                if (p2 instanceof Promise) promises.push(p2);
 
                 if (response && response.status >= 500) {
-                  const p3 = options.monitoring.emit({
+                  options.monitoring.emit({
                     type: "request.error",
                     requestId,
                     method: request.method,
@@ -735,36 +726,17 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
                     severity: "error",
                     source: "bun",
                   });
-                  if (p3 instanceof Promise) promises.push(p3);
-                }
-                
-                if (promises.length > 0) {
-                  return Promise.all(promises).then(() => withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders)));
                 }
               }
               
               return withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders));
             };
 
-            if (options.security) {
-              const trustResult = options.security.evaluateRequestTrust(handlerRequest);
-              if (trustResult instanceof Promise) {
-                return trustResult.then(processUser);
-              }
-              return processUser(trustResult);
-            }
             return processUser({ trusted: true });
           };
 
           if (options.requestId?.enabled === true) {
             const idResult = options.monitoring?.requestId(request);
-            if (idResult instanceof Promise) {
-              const p = idResult.then(id => runRequest(id ?? crypto.randomUUID()));
-              return p.catch(err => {
-                const errResponse = options.onError ? options.onError(err, request) : toErrorResponse(err, request, options.radiant?.adapter);
-                return withHeaders(errResponse, requestResponseHeaders(request, undefined));
-              });
-            }
             const res = runRequest(idResult ?? crypto.randomUUID());
             if (res instanceof Promise) {
               return res.catch(err => {
@@ -792,9 +764,8 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
           if (hasMonitoring && options.monitoring) {
             const durationMs = Math.round(performance.now() - startedAt);
             const message = error instanceof Error ? error.message : String(error);
-            const promises: Promise<any>[] = [];
             
-            const p1 = options.monitoring.emit({
+            options.monitoring.emit({
               type: "runtime.error",
               requestId,
               method: request.method,
@@ -806,9 +777,8 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
               source: "bun",
               metadata: { route: route.path },
             });
-            if (p1 instanceof Promise) promises.push(p1);
 
-            const p2 = options.monitoring.emit({
+            options.monitoring.emit({
               type: "request.error",
               requestId,
               method: request.method,
@@ -819,11 +789,6 @@ export class RadiantRouter<TCollections extends Record<string, any> = any, TStat
               message,
               source: "bun",
             });
-            if (p2 instanceof Promise) promises.push(p2);
-            
-            if (promises.length > 0) {
-              return Promise.all(promises).then(() => withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders)));
-            }
           }
           return withHeaders(response, requestResponseHeaders(handlerRequest, requestHeaders));
         }

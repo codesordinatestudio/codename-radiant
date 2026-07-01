@@ -897,6 +897,7 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
     const originalStop = server.stop.bind(server);
     server.stop = ((closeActiveConnections?: boolean) => {
       this.cronManager.stopAll();
+      if (this.monitoring) this.monitoring.stop().catch(() => {});
       return originalStop(closeActiveConnections);
     }) as any;
 

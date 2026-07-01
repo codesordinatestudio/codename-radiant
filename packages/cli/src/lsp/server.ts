@@ -18,6 +18,7 @@ import { parserInstance } from '../parser/parser';
 import { visitorInstance } from '../parser/visitor';
 import { compile, SemanticError } from '../compiler';
 import { formatRadiant } from './formatter';
+import { getCompletions } from './autocomplete';
 
 // Create a connection for the server, using Node's IPC as a transport.
 const connection = createConnection(ProposedFeatures.all);
@@ -206,99 +207,8 @@ connection.onCompletion((params) => {
 
   const text = document.getText();
   const offset = document.offsetAt(params.position);
-  const textBefore = text.substring(0, offset);
-  const currentLine = textBefore.substring(textBefore.lastIndexOf('\n') + 1);
-
-  const fieldTypes = [
-    { label: 'array', kind: CompletionItemKind.Property, detail: 'Array field', documentation: 'Stored as JSONB' },
-    { label: 'boolean', kind: CompletionItemKind.Property, detail: 'Boolean field', documentation: 'Stored as BOOLEAN' },
-    { label: 'date', kind: CompletionItemKind.Property, detail: 'Date field', documentation: 'Stored as TIMESTAMPTZ' },
-    { label: 'email', kind: CompletionItemKind.Property, detail: 'Email field', documentation: 'Stored as TEXT' },
-    { label: 'integer', kind: CompletionItemKind.Property, detail: 'Integer field', documentation: 'Stored as INTEGER' },
-    { label: 'json', kind: CompletionItemKind.Property, detail: 'JSON field', documentation: 'Stored as JSONB' },
-    { label: 'multiselect', kind: CompletionItemKind.Property, detail: 'Multi-select field', documentation: 'Stored as TEXT[]' },
-    { label: 'number', kind: CompletionItemKind.Property, detail: 'Number field', documentation: 'Stored as NUMERIC' },
-    { label: 'password', kind: CompletionItemKind.Property, detail: 'Password field', documentation: 'Stored as TEXT (hashed)' },
-    { label: 'relationship', kind: CompletionItemKind.Property, detail: 'Relationship field', documentation: 'Stored as UUID (Foreign Key)' },
-    { label: 'richtext', kind: CompletionItemKind.Property, detail: 'Rich text field', documentation: 'Stored as JSONB' },
-    { label: 'select', kind: CompletionItemKind.Property, detail: 'Select field', documentation: 'Stored as TEXT' },
-    { label: 'text', kind: CompletionItemKind.Property, detail: 'Text field', documentation: 'Stored as TEXT' },
-    { label: 'textarea', kind: CompletionItemKind.Property, detail: 'Long text field', documentation: 'Stored as TEXT' },
-    { label: 'upload', kind: CompletionItemKind.Property, detail: 'Upload field', documentation: 'Stored as JSONB' },
-    { label: 'env', kind: CompletionItemKind.Function, detail: 'Environment variable (e.g. env("JWT_EXPIRY", "15m"))', documentation: 'Resolve value from environment at runtime' }
-  ];
-
-  const structuralTypes = [
-    { label: 'config', kind: CompletionItemKind.Property, detail: 'Global configuration block', documentation: 'Root level block for configuration' },
-    { label: 'output', kind: CompletionItemKind.Property, detail: 'Output directory', documentation: 'Where to put generated files (e.g. "../src")' },
-    { label: 'globals', kind: CompletionItemKind.Property, detail: 'Define a singleton document', documentation: 'Root level block for defining a global document' },
-    { label: 'collection', kind: CompletionItemKind.Property, detail: 'Define a database collection', documentation: 'Root level block for defining a collection' },
-    { label: 'core', kind: CompletionItemKind.Property, detail: 'Core framework settings', documentation: 'Allowed in config {}' },
-    { label: 'api', kind: CompletionItemKind.Property, detail: 'API settings', documentation: 'Allowed in core {}' },
-    { label: 'prefix', kind: CompletionItemKind.Property, detail: 'Set the global API prefix (e.g. "/api")', documentation: 'Allowed in api {}' },
-    { label: 'maxBodyBytes', kind: CompletionItemKind.Property, detail: 'Max request body size', documentation: 'Allowed in api {}' },
-    { label: 'trustedProxies', kind: CompletionItemKind.Property, detail: 'List of trusted proxies', documentation: 'Allowed in api {}' },
-    
-    { label: 'adminUI', kind: CompletionItemKind.Property, detail: 'Admin UI configuration', documentation: 'Allowed in config {}' },
-    { label: 'enabled', kind: CompletionItemKind.Property, detail: 'Enable or disable a feature', documentation: 'Used in many blocks' },
-    { label: 'user', kind: CompletionItemKind.Property, detail: 'The collection used for admin users', documentation: 'Allowed in adminUI {}' },
-    
-    { label: 'security', kind: CompletionItemKind.Property, detail: 'Security policies and settings', documentation: 'Allowed in config {}' },
-    { label: 'auth', kind: CompletionItemKind.Property, detail: 'Authentication settings', documentation: 'Allowed in collection {} or security {}' },
-    { label: 'strategies', kind: CompletionItemKind.Property, detail: 'Set authentication strategies (e.g. ["jwt", "session"])', documentation: 'Allowed in auth {}' },
-    { label: 'jwt', kind: CompletionItemKind.Property, detail: 'JWT specific settings', documentation: 'Allowed in auth {}' },
-    { label: 'accessTokenExpiry', kind: CompletionItemKind.Property, detail: 'e.g. "15m"', documentation: 'Allowed in jwt {}' },
-    { label: 'refreshTokenExpiry', kind: CompletionItemKind.Property, detail: 'e.g. "7d"', documentation: 'Allowed in jwt {}' },
-    { label: 'cookies', kind: CompletionItemKind.Property, detail: 'Cookie settings', documentation: 'Allowed in jwt {}' },
-    { label: 'passwordPolicy', kind: CompletionItemKind.Property, detail: 'Password validation rules', documentation: 'Allowed in auth {}' },
-    { label: 'minLength', kind: CompletionItemKind.Property, detail: 'Minimum password length', documentation: 'Allowed in passwordPolicy {}' },
-    { label: 'requireUppercase', kind: CompletionItemKind.Property, detail: 'Require uppercase letter', documentation: 'Allowed in passwordPolicy {}' },
-    { label: 'requireNumber', kind: CompletionItemKind.Property, detail: 'Require number', documentation: 'Allowed in passwordPolicy {}' },
-    { label: 'lockout', kind: CompletionItemKind.Property, detail: 'Account lockout settings', documentation: 'Allowed in auth {}' },
-    { label: 'maxAttempts', kind: CompletionItemKind.Property, detail: 'Max failed logins', documentation: 'Allowed in lockout {}' },
-    { label: 'durationMinutes', kind: CompletionItemKind.Property, detail: 'Lockout duration', documentation: 'Allowed in lockout {}' },
-    
-    { label: 'cors', kind: CompletionItemKind.Property, detail: 'CORS settings', documentation: 'Allowed in security {}' },
-    { label: 'origin', kind: CompletionItemKind.Property, detail: 'Allowed origins', documentation: 'Allowed in cors {}' },
-    { label: 'credentials', kind: CompletionItemKind.Property, detail: 'Allow credentials', documentation: 'Allowed in cors {}' },
-    
-    { label: 'rateLimit', kind: CompletionItemKind.Property, detail: 'Rate limiting rules', documentation: 'Allowed in security {}' },
-    { label: 'write', kind: CompletionItemKind.Property, detail: 'Rate limit for writes', documentation: 'Allowed in rateLimit {}' },
-    { label: 'login', kind: CompletionItemKind.Property, detail: 'Rate limit for logins', documentation: 'Allowed in rateLimit {}' },
-    { label: 'max', kind: CompletionItemKind.Property, detail: 'Max requests', documentation: 'Allowed in rateLimit {}' },
-    { label: 'window', kind: CompletionItemKind.Property, detail: 'Time window (e.g. "15m")', documentation: 'Allowed in rateLimit {}' },
-    
-    { label: 'headers', kind: CompletionItemKind.Property, detail: 'Security headers configuration', documentation: 'Allowed in security {}' },
-    { label: 'secrets', kind: CompletionItemKind.Property, detail: 'Secret management configuration', documentation: 'Allowed in security {}' },
-    { label: 'audit', kind: CompletionItemKind.Property, detail: 'Audit logging configuration', documentation: 'Allowed in security {}' },
-
-    { label: 'monitoring', kind: CompletionItemKind.Property, detail: 'Monitoring and health checks', documentation: 'Allowed in config {}' },
-    { label: 'healthCheck', kind: CompletionItemKind.Property, detail: 'Health check endpoint', documentation: 'Allowed in monitoring {}' },
-    { label: 'path', kind: CompletionItemKind.Property, detail: 'Health check path (e.g. "/health")', documentation: 'Allowed in healthCheck {}' },
-    { label: 'requiresAuth', kind: CompletionItemKind.Property, detail: 'Does health check require auth', documentation: 'Allowed in healthCheck {}' },
-    { label: 'requestId', kind: CompletionItemKind.Property, detail: 'Request ID tracking', documentation: 'Allowed in monitoring {}' },
-    
-    { label: 'fields', kind: CompletionItemKind.Property, detail: 'Define database schema fields', documentation: 'Allowed in collection {}' },
-  ];
-
-  const tokens = currentLine.trim().split(/\s+/);
-  const currentToken = tokens[tokens.length - 1];
-
-  if (currentToken?.startsWith('@') || textBefore.endsWith('@')) {
-    return [
-      { label: 'unique', kind: CompletionItemKind.Property, detail: 'Ensure field is unique', documentation: 'Create a unique constraint in the DB' },
-      { label: 'optional', kind: CompletionItemKind.Property, detail: 'Mark field as optional', documentation: 'Allow null values' },
-      { label: 'default', kind: CompletionItemKind.Function, detail: 'Set a default value', documentation: 'e.g. @default("user")' },
-      { label: 'hidden', kind: CompletionItemKind.Property, detail: 'Hide field', documentation: 'Hide from API responses' },
-      { label: 'index', kind: CompletionItemKind.Property, detail: 'Add database index', documentation: 'Improve query performance' }
-    ];
-  }
-
-  if (currentLine.includes(':')) {
-    return fieldTypes;
-  }
-
-  return structuralTypes;
+  
+  return getCompletions(text, offset);
 });
 
 connection.onDocumentFormatting((params) => {

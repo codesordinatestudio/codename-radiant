@@ -17,7 +17,7 @@ export class SemanticError extends Error {
 
 const ALLOWED_CONFIG = new Set(["core", "security", "monitoring", "adminUI", "apiPrefix", "migrate", "output"]);
 const ALLOWED_CORE = new Set(["api", "openapi", "upload"]);
-const ALLOWED_SECURITY = new Set(["auth", "cors", "rateLimit", "headers", "secrets", "audit"]);
+const ALLOWED_SECURITY = new Set(["auth", "cors", "rateLimit", "headers", "secrets", "audit", "csrfTrustedOrigins"]);
 const ALLOWED_AUTH = new Set(["strategies", "jwt", "session", "apiKey", "passwordPolicy", "lockout"]);
 const ALLOWED_MONITORING = new Set(["healthCheck", "requestId", "apiKey", "enabled"]);
 const ALLOWED_COLLECTION = new Set(["auth", "fields", "realtime", "cache", "hooks", "admin"]);
