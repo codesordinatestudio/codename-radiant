@@ -139,8 +139,37 @@ app.router.post("/projects/:projectId/deploy", async (ctx) => {
       env: {
         ...process.env,
         PORT: port.toString()
-      }
+      },
+      stdio: ["ignore", "pipe", "pipe"],
     });
+
+    // Wait briefly for the process to either start listening or crash
+    const started = await new Promise<boolean>((resolve) => {
+      let resolved = false;
+      const settle = (ok: boolean) => {
+        if (!resolved) { resolved = true; resolve(ok); }
+      };
+
+      child.on("error", () => settle(false));
+      child.on("exit", () => settle(false));
+
+      // Give it 3s to bind; if still alive, probe the port
+      setTimeout(async () => {
+        if (child.killed || child.exitCode !== null) return settle(false);
+        try {
+          const res = await fetch(`http://localhost:${port}/`);
+          settle(res.ok || res.status > 0);
+        } catch {
+          settle(false);
+        }
+      }, 3000);
+    });
+
+    if (!started) {
+      runningProcesses.delete(projectId);
+      try { child.kill(); } catch {}
+      return new Response(JSON.stringify({ error: "Deploy failed: server did not start listening on the assigned port", port }), { status: 500, headers: { "Content-Type": "application/json" }});
+    }
 
     runningProcesses.set(projectId, child);
 

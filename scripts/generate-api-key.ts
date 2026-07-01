@@ -15,7 +15,7 @@ async function main() {
     message: "What is the owner's name?",
     placeholder: "John Doe",
     validate(value) {
-      if (value.length === 0) return "Name is required!";
+      if (!value || value.length === 0) return "Name is required!";
     }
   });
   if (isCancel(ownerName)) return;
@@ -24,7 +24,7 @@ async function main() {
     message: "What is the company name?",
     placeholder: "Acme Corp",
     validate(value) {
-      if (value.length === 0) return "Company name is required!";
+      if (!value || value.length === 0) return "Company name is required!";
     }
   });
   if (isCancel(companyName)) return;

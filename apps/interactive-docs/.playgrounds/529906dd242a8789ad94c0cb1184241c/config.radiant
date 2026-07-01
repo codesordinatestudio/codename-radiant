@@ -1,0 +1,12 @@
+model User {
+  id: uuid @id @default(uuid())
+  createdAt: datetime @default(now())
+}
+
+endpoint getUsers {
+  method: "GET"
+  path: "/api/getusers"
+  handler: (req) => {
+    return { message: 'Hello from the backend!' }
+  }
+}

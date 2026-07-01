@@ -14,7 +14,7 @@ async function run() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "E-Commerce Test" })
   });
-  const project = await scaffoldRes.json();
+  const project = await scaffoldRes.json() as any;
   if (!project.projectId) throw new Error("Scaffold failed: " + JSON.stringify(project));
   const { projectId } = project;
   console.log(`Project created with ID: ${projectId}`);
@@ -99,7 +99,7 @@ async function run() {
   const buildRes = await fetch(`${API_URL}/projects/${projectId}/build`, {
     method: "POST"
   });
-  const buildResult = await buildRes.json();
+  const buildResult = await buildRes.json() as any;
   console.log("Build result:", buildResult.status === "built" ? "SUCCESS" : buildResult);
 
   console.log("=== API Test Complete ===");

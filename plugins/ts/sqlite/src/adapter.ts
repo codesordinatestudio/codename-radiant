@@ -306,6 +306,10 @@ export class SQLiteAdapter implements RadiantAdapter {
 
   async create(collection: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (!this.db) throw new Error("Database not connected");
+    // Auto-generate an id if not provided
+    if (!("id" in data) || data.id === undefined || data.id === null) {
+      data = { id: crypto.randomUUID(), ...data };
+    }
     const keys = Object.keys(data);
     const values = Object.values(data).map(v => typeof v === 'object' && v !== null && !(v instanceof Date) ? JSON.stringify(v) : v);
     
@@ -320,6 +324,14 @@ export class SQLiteAdapter implements RadiantAdapter {
   async createMany(collection: string, docs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
     if (!this.db) throw new Error("Database not connected");
     if (!docs.length) return [];
+    
+    // Auto-generate ids where not provided
+    docs = docs.map(doc => {
+      if (!("id" in doc) || doc.id === undefined || doc.id === null) {
+        return { id: crypto.randomUUID(), ...doc };
+      }
+      return doc;
+    });
     
     const keys = Object.keys(docs[0]!);
     const keyStr = keys.map(k => `"${k}"`).join(", ");

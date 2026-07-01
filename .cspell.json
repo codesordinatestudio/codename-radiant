@@ -13,6 +13,7 @@
         "myapp",
         "recompiler",
         "recompiles",
+        "rgba",
         "setex",
         "surrealdb"
     ]

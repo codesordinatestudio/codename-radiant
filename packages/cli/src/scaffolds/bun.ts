@@ -364,7 +364,7 @@ app.router.get("/", () => {
   return new Response(Bun.file("public/index.html"));
 });
 
-app.start({ port: 3000 }).catch(console.error);
+app.start({ port: process.env.PORT ? parseInt(process.env.PORT) : 3000 }).catch(console.error);
 `;
     writeFileSync(join(srcDir, "index.ts"), indexTsContent);
 

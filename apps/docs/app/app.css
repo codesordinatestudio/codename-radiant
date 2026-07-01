@@ -81,7 +81,7 @@ table td:first-child {
 }
 
 table td code {
-  @apply bg-base-100 border border-base-content/10 px-2 py-0.5 rounded text-[11px] font-mono text-base-content/60 uppercase shadow-[0_1px_2px_rgba(0,0,0,0.02)];
+  @apply bg-base-100 border border-base-content/10 px-2 py-0.5 rounded text-[11px] font-mono text-base-content/60 uppercase shadow-sm;
 }
 
 table tbody tr:last-child {

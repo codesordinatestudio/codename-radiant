@@ -36,9 +36,7 @@ setInterval(async () => {
           console.error(`Failed to remove directory ${project.targetDir}:`, err);
         }
       }
-      await app.adapter.delete("projects", {
-        where: { id: { eq: project.id } }
-      });
+      await app.adapter.delete("projects", project.id as string);
     }
   } catch (err) {
     console.error("Cleanup cron job failed:", err);
