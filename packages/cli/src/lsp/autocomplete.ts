@@ -52,10 +52,12 @@ const blockTypes = {
     { label: 'headers', kind: CompletionItemKind.Property, detail: 'Security headers configuration' },
     { label: 'secrets', kind: CompletionItemKind.Property, detail: 'Secret management configuration' },
     { label: 'audit', kind: CompletionItemKind.Property, detail: 'Audit logging configuration' },
+    { label: 'csrfTrustedOrigins', kind: CompletionItemKind.Property, detail: 'Origins allowed to make cookie-authenticated state-changing requests' },
   ],
   auth: [
     { label: 'strategies', kind: CompletionItemKind.Property, detail: 'Set authentication strategies (e.g. ["jwt", "session"])' },
     { label: 'jwt', kind: CompletionItemKind.Property, detail: 'JWT specific settings' },
+    { label: 'apiKey', kind: CompletionItemKind.Property, detail: 'API key auth settings' },
     { label: 'passwordPolicy', kind: CompletionItemKind.Property, detail: 'Password validation rules' },
     { label: 'lockout', kind: CompletionItemKind.Property, detail: 'Account lockout settings' },
   ],

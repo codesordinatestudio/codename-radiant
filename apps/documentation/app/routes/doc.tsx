@@ -72,6 +72,7 @@ const DOC_ORDER = [
   "storage",
   "email",
   "plugins",
+  "monitoring",
   "local-api",
   "rest-api",
   "realtime",

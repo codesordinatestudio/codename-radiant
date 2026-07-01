@@ -72,9 +72,9 @@ When typing at the block level (not after a `:`), you get completions for:
 - `config`, `collection`, `global` — top-level block keywords
 - `core`, `security`, `monitoring`, `adminUI`, `output` — config block keys
 - `api`, `prefix`, `maxBodyBytes`, `trustedProxies` — nested config keys
-- `auth`, `cors`, `rateLimit`, `headers`, `secrets`, `audit` — security keys
-- `strategies`, `jwt`, `passwordPolicy`, `lockout` — auth keys
-- `healthCheck`, `path`, `requiresAuth`, `requestId` — monitoring keys
+- `auth`, `cors`, `rateLimit`, `headers`, `secrets`, `audit`, `csrfTrustedOrigins` — security keys
+- `strategies`, `jwt`, `apiKey`, `passwordPolicy`, `lockout` — auth keys
+- `enabled`, `apiKey`, `healthCheck`, `path`, `requiresAuth`, `requestId` — monitoring keys
 - `fields` — collection field definition key
 
 ### Field Types

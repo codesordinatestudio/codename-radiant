@@ -85,7 +85,7 @@ config {
 
 ## `security`
 
-Security policies. Allowed keys: `auth`, `cors`, `rateLimit`, `headers`, `secrets`, `audit`.
+Security policies. Allowed keys: `auth`, `cors`, `rateLimit`, `headers`, `secrets`, `audit`, `csrfTrustedOrigins`.
 
 ### `auth`
 
@@ -120,7 +120,7 @@ config {
 | `strategies` | String[] | Auth strategies to enable: `"jwt"`, `"session"`, `"apiKey"`. |
 | `jwt` | Object | JWT settings: `accessTokenExpiry`, `refreshTokenExpiry`, `cookies`. |
 | `session` | Object | Session-based auth settings. |
-| `apiKey` | Object | API key auth settings. |
+| `apiKey` | Object | API key auth settings: `header` (header name, defaults to `X-API-Key`), `enabled`. |
 | `passwordPolicy` | Object | `minLength`, `requireUppercase`, `requireNumber`. |
 | `lockout` | Object | `maxAttempts`, `durationMinutes` — lock accounts after repeated failures. |
 
@@ -180,7 +180,16 @@ config {
 }
 ```
 
-When enabled, the runtime adds security headers (CSP, X-Frame-Options, X-Content-Type-Options, etc.) to responses.
+When enabled, the runtime adds the following security headers to every response:
+
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `X-XSS-Protection` | `1; mode=block` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` |
 
 ### `secrets`
 
@@ -210,11 +219,29 @@ config {
 
 When enabled, the runtime auto-creates a `radiant_audit_log` collection and logs all data mutations with HMAC-signed entries for tamper detection.
 
+### `csrfTrustedOrigins`
+
+```radiant
+config {
+  security: {
+    csrfTrustedOrigins: ["https://myapp.com", "https://admin.myapp.com"]
+  }
+}
+```
+
+| Property | Type | Description |
+|---|---|---|
+| `csrfTrustedOrigins` | String[] | Origins allowed to make cookie-authenticated state-changing requests, bypassing same-origin CSRF checks. |
+
+The runtime's CSRF guard activates on state-changing methods (POST, PUT, PATCH, DELETE) when a cookie is present. It checks the `Origin` or `Referer` header against the request `Host`. If the origin doesn't match, the request is rejected with `403 CSRF_ERROR` — unless the origin is listed in `csrfTrustedOrigins`. Requests carrying a custom header (`X-RADIANT-CSRF`, `X-CSRF-Token`, or `X-Requested-With`) bypass the origin check entirely, as custom headers cannot be sent cross-origin without CORS permission.
+
 ## `monitoring`
 
 ```radiant
 config {
   monitoring: {
+    enabled: true
+    apiKey: env("MONITORING_API_KEY")
     healthCheck: {
       enabled: true
       path: "/health"
@@ -229,10 +256,23 @@ config {
 
 | Property | Type | Description |
 |---|---|---|
-| `healthCheck.enabled` | Boolean | Enable the health check endpoint. |
-| `healthCheck.path` | String | URL path for the health check (e.g., `"/health"`). |
-| `healthCheck.requiresAuth` | Boolean | Whether the health check requires authentication. |
-| `requestId.enabled` | Boolean | Add a unique request ID header to every response. |
+| `enabled` | Boolean | Enable monitoring endpoints and request instrumentation. |
+| `apiKey` | String | Bearer token required to access monitoring endpoints. If unset, endpoints are insecure (a warning is logged). |
+| `healthCheck.enabled` | Boolean | Enable the health check endpoint. Defaults to `true` when monitoring is enabled. |
+| `healthCheck.path` | String | URL path for the health check (e.g., `"/health"`). Defaults to `/{apiPrefix}/monitor/health`. |
+| `healthCheck.requiresAuth` | Boolean | Whether the health check requires the monitoring API key. Defaults to `false`. |
+| `requestId.enabled` | Boolean | Generate a unique request ID for each request (honours incoming `X-Request-ID` header). |
+
+When monitoring is enabled, the runtime exposes four endpoints under `{apiPrefix}/monitor`:
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/monitor/events` | GET | Query buffered monitoring events with filters (`?type=`, `?severity=`, `?since=`, `?limit=`). |
+| `/monitor/metrics` | GET | Aggregate summary: event counts by type/severity, request totals, average duration. |
+| `/monitor/health` | GET | Database + cache health check. Returns `200` (ok/degraded) or `503` (error). |
+| `/monitor/stream` | GET | Server-Sent Events live stream with backlog replay and 30s heartbeat. Supports same query filters as `/events`. |
+
+See [Monitoring](./monitoring) for the full guide on exporters, SSE streams, and external tool integration.
 
 ## `adminUI`
 
@@ -330,9 +370,12 @@ config {
     headers: { enabled: true }
     secrets: { enabled: true }
     audit: { enabled: false }
+    csrfTrustedOrigins: ["https://myapp.com"]
   }
 
   monitoring: {
+    enabled: true
+    apiKey: env("MONITORING_API_KEY")
     healthCheck: {
       enabled: true
       path: "/health"

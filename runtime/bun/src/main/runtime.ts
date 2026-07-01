@@ -843,9 +843,17 @@ export class RadiantRuntime<TCollections extends Record<string, any> = Record<st
       monitoring: this.monitoring,
       requestId: this.schema.monitoring?.requestId,
       cors: this.schema.security?.cors,
+      csrfTrustedOrigins: this.schema.security?.csrfTrustedOrigins,
       rateLimiter: this.rateLimiter,
       headers: this.schema.security?.headers?.enabled
-        ? { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "X-XSS-Protection": "1; mode=block" }
+        ? {
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "X-XSS-Protection": "1; mode=block",
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+          }
         : undefined,
     });
 

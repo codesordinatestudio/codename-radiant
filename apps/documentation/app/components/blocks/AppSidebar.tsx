@@ -31,6 +31,7 @@ const TS_NAV_GROUPS = [
       { label: "Storage", slug: "storage" },
       { label: "Email", slug: "email" },
       { label: "Plugins", slug: "plugins" },
+      { label: "Monitoring", slug: "monitoring" },
     ],
   },
   {

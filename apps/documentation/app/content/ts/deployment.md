@@ -161,21 +161,36 @@ sudo systemctl enable radiant-app
 sudo systemctl start radiant-app
 ```
 
-## Health Checks
+## Health Checks & Monitoring
 
-If you configured `monitoring.healthCheck` in your DSL, the runtime serves a health check endpoint:
+If you configured `monitoring.enabled: true` in your DSL, the runtime serves a health check endpoint and monitoring API:
 
 ```bash
+# Health check (no auth required by default)
 curl http://localhost:3000/health
 # → { "status": "ok", ... }
+
+# Monitoring metrics (requires API key)
+curl -H "Authorization: Bearer $MONITORING_API_KEY" \
+  http://localhost:3000/api/monitor/metrics
+# → { "total": 1523, "byType": { ... }, "requests": { ... } }
 ```
 
-Use this endpoint for load balancer health checks (AWS ALB, Kubernetes liveness/readiness probes, Docker healthcheck):
+Use the health endpoint for load balancer health checks (AWS ALB, Kubernetes liveness/readiness probes, Docker healthcheck):
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 ```
+
+For external monitoring tools and Radiant Desktop, use the SSE stream endpoint for live event feeds:
+
+```bash
+curl -N -H "Authorization: Bearer $MONITORING_API_KEY" \
+  http://localhost:3000/api/monitor/stream
+```
+
+See [Monitoring](./monitoring) for the full endpoint reference and exporter guide.
 
 ## Production Checklist
 
@@ -190,6 +205,9 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 - [ ] File storage uses S3 (not local disk) if running multiple instances
 - [ ] Queue Manager is initialised with Redis (if using background jobs)
 - [ ] Health check endpoint is configured for your load balancer
+- [ ] Monitoring API key is set (if monitoring is enabled)
+- [ ] `csrfTrustedOrigins` lists any cross-origin cookie-authenticated frontends
+- [ ] Security headers are enabled (`security.headers.enabled: true`)
 - [ ] Process manager (systemd, pm2, Docker) is set up with restart on failure
 
 ## Related
