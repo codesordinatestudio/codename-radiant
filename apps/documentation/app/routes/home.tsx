@@ -9,6 +9,8 @@ export async function loader() {
   const filePath = path.join(process.cwd(), "app/content/core", "overview.md");
   const markdown = await fs.readFile(filePath, "utf-8");
 
+  console.log(filePath);
+
   const titleMatch = /^#\s+(.+)$/m.exec(markdown);
   const title = titleMatch ? titleMatch[1] : "Overview";
   const body = titleMatch
@@ -17,7 +19,14 @@ export async function loader() {
 
   const descMatch = body
     .split("\n")
-    .find((line) => line.trim().length > 0 && !line.startsWith("#") && !line.startsWith("```") && !line.startsWith("|") && !line.startsWith("-"));
+    .find(
+      (line) =>
+        line.trim().length > 0 &&
+        !line.startsWith("#") &&
+        !line.startsWith("```") &&
+        !line.startsWith("|") &&
+        !line.startsWith("-"),
+    );
 
   const description = descMatch ? descMatch.replace(/[*_`]/g, "").trim() : undefined;
 
@@ -31,15 +40,15 @@ export default function Home() {
     <DocTemplate
       title={title}
       description={description}
+      content={body}
       nextPage={{ label: "DSL Syntax", href: "/docs/ts/dsl-syntax" }}
       runtime="ts"
     >
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
         <Link to="/docs/ts/" className="btn btn-primary text-primary-content border-none px-8">
           Go to Documentation
         </Link>
       </div>
-      <MarkdownRenderer content={body} />
     </DocTemplate>
   );
 }

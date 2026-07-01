@@ -1,8 +1,7 @@
 import { app } from "../server";
 import { t } from "@codesordinatestudio/radiant-bun";
 import { existsSync, readFileSync, writeFileSync, rmSync, mkdirSync, statSync, readdirSync } from "fs";
-import { join } from "path";
-
+import { join } from "path"
 async function getProjectDir(projectId: string) {
   const project = await app.adapter.find("projects", { where: { projectId: { eq: projectId } } });
   if (project.docs.length === 0) return null;

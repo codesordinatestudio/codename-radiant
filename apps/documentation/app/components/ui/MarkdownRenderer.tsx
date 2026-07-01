@@ -1,5 +1,5 @@
-import MarkdownPreview from "@uiw/react-markdown-preview";
 import { useEffect, useRef } from "react";
+import MarkdownPreview from "@uiw/react-markdown-preview";
 
 export interface Heading {
   id: string;

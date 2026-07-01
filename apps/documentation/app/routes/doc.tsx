@@ -48,12 +48,11 @@ export default function DocPage() {
     <DocTemplate 
       title={title} 
       description={description} 
+      content={body}
       prevPage={nav.prev} 
       nextPage={nav.next}
       runtime={runtime}
-    >
-      <MarkdownRenderer content={body} />
-    </DocTemplate>
+    />
   );
 }
 
