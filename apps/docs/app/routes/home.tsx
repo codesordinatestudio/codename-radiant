@@ -6,7 +6,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 export async function loader() {
-  const filePath = path.join(process.cwd(), "app/content", "overview.md");
+  const filePath = path.join(process.cwd(), "app/content/core", "overview.md");
   const markdown = await fs.readFile(filePath, "utf-8");
 
   const titleMatch = /^#\s+(.+)$/m.exec(markdown);

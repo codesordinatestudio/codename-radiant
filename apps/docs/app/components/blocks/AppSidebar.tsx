@@ -20,6 +20,31 @@ const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] 
     ],
   },
   {
+    title: "TS Runtime",
+    items: [
+      { label: "Access Control", slug: "access" },
+      { label: "Hooks", slug: "hooks" },
+      { label: "Custom Endpoints", slug: "custom-endpoints" },
+      { label: "Storage", slug: "storage" },
+      { label: "Email", slug: "email" },
+      { label: "Plugins", slug: "plugins" },
+    ],
+  },
+  {
+    title: "Data",
+    items: [
+      { label: "Local API", slug: "local-api" },
+      { label: "REST API", slug: "rest-api" },
+    ],
+  },
+  {
+    title: "Utils",
+    items: [
+      { label: "Realtime", slug: "realtime" },
+      { label: "Queue Manager", slug: "queue-manager" },
+    ],
+  },
+  {
     title: "Tooling",
     items: [
       { label: "CLI Reference", slug: "cli-reference" },
@@ -28,11 +53,19 @@ const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] 
     ],
   },
   {
+    title: "Plugins",
+    items: [{ label: "Database Plugins", slug: "database-plugins" }],
+  },
+  {
     title: "Reference",
     items: [
       { label: "Environment Variables", slug: "environment-variables" },
       { label: "Project Structure", slug: "project-structure" },
     ],
+  },
+  {
+    title: "Production",
+    items: [{ label: "Deployment", slug: "deployment" }],
   },
 ];
 
@@ -45,34 +78,44 @@ export function AppSidebar() {
       <div className="p-4">
         <SearchInput placeholder="Search docs" className="mb-6" />
 
-        <nav className="space-y-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.title}>
-              <h3 className="px-3 text-[13px] font-bold text-gray-900 mb-1 tracking-wide uppercase">
-                {group.title}
-              </h3>
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const href = item.slug === "" ? "/" : `/docs/${item.slug}`;
-                  const isActive = currentSlug === item.slug || (item.slug === "" && pathname === "/");
-                  return (
-                    <a
-                      key={item.slug}
-                      href={href}
-                      className={`flex items-center px-3 py-1 ml-1 rounded-lg text-[13px] transition-colors ${
-                        isActive
-                          ? "bg-gray-200/50 text-gray-900 font-medium"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {item.label}
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
+        <ul className="menu w-full p-0">
+          {NAV_GROUPS.map((group) => {
+            // Check if any item in this group is currently active
+            const hasActiveItem = group.items.some(
+              (item) => currentSlug === item.slug || (item.slug === "" && pathname === "/"),
+            );
+
+            return (
+              <li key={group.title} className="mb-1">
+                <details open={hasActiveItem || group.title === "Getting Started"}>
+                  <summary className="font-semibold text-sm text-gray-900 capitalize tracking-wider py-2 hover:bg-gray-100/50">
+                    {group.title}
+                  </summary>
+                  <ul className="ml-2 pl-4 border-l border-gray-200/60 mt-1 mb-2 space-y-0.5">
+                    {group.items.map((item) => {
+                      const href = item.slug === "" ? "/" : `/docs/${item.slug}`;
+                      const isActive = currentSlug === item.slug || (item.slug === "" && pathname === "/");
+                      return (
+                        <li key={item.slug}>
+                          <a
+                            href={href}
+                            className={`text-sm py-1.5 transition-colors ${
+                              isActive
+                                ? "bg-gray-200/50 text-gray-900 font-medium active:bg-gray-200/50! active:text-gray-900!"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                            }`}
+                          >
+                            {item.label}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </aside>
   );
