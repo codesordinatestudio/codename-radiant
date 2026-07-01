@@ -1,5 +1,6 @@
 import * as React from "react";
 import { SearchInput } from "../ui/SearchInput";
+import { Link, useLocation } from "react-router";
 
 const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] = [
   {
@@ -70,17 +71,17 @@ const NAV_GROUPS: { title: string; items: { label: string; slug: string }[] }[] 
 ];
 
 export function AppSidebar() {
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const location = useLocation();
+  const pathname = location.pathname;
   const currentSlug = pathname.replace(/^\/docs\//, "").replace(/\/$/, "");
 
   return (
-    <aside className="w-64 h-[calc(100vh-4rem)] overflow-y-auto border-r border-gray-200/50 bg-warm-bg sticky top-16 hidden md:block shrink-0">
+    <aside className="w-64 h-[calc(100vh-4rem)] overflow-y-auto border-r border-base-content/10 bg-base-100 sticky top-16 hidden md:block shrink-0">
       <div className="p-4">
         <SearchInput placeholder="Search docs" className="mb-6" />
 
         <ul className="menu w-full p-0">
           {NAV_GROUPS.map((group) => {
-            // Check if any item in this group is currently active
             const hasActiveItem = group.items.some(
               (item) => currentSlug === item.slug || (item.slug === "" && pathname === "/"),
             );
@@ -88,25 +89,25 @@ export function AppSidebar() {
             return (
               <li key={group.title} className="mb-1">
                 <details open={hasActiveItem || group.title === "Getting Started"}>
-                  <summary className="font-semibold text-sm text-gray-900 capitalize tracking-wider py-2 hover:bg-gray-100/50">
+                  <summary className="font-semibold text-sm text-base-content capitalize tracking-wider py-2 hover:bg-base-200">
                     {group.title}
                   </summary>
-                  <ul className="ml-2 pl-4 border-l border-gray-200/60 mt-1 mb-2 space-y-0.5">
+                  <ul className="ml-2 pl-4 border-l border-base-content/10 mt-1 mb-2 space-y-0.5">
                     {group.items.map((item) => {
                       const href = item.slug === "" ? "/" : `/docs/${item.slug}`;
                       const isActive = currentSlug === item.slug || (item.slug === "" && pathname === "/");
                       return (
                         <li key={item.slug}>
-                          <a
-                            href={href}
+                          <Link
+                            to={href}
                             className={`text-sm py-1.5 transition-colors ${
                               isActive
-                                ? "bg-gray-200/50 text-gray-900 font-medium active:bg-gray-200/50! active:text-gray-900!"
-                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                ? "bg-base-200 text-base-content font-medium active:bg-base-200! active:text-base-content!"
+                                : "text-base-content/70 hover:text-base-content hover:bg-base-200"
                             }`}
                           >
                             {item.label}
-                          </a>
+                          </Link>
                         </li>
                       );
                     })}

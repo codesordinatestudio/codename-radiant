@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@iconify/react": "^6.0.2",
     "@react-router/node": "8.0.0",
     "@react-router/serve": "8.0.0",
     "@uiw/react-markdown-preview": "^5.2.1",
