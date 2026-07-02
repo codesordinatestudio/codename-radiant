@@ -3,8 +3,21 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema, ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import jwt from "jsonwebtoken";
 
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000";
-const API_KEY = jwt.sign({ owner: "MCP Test Runner" }, process.env.JWT_SECRET || "radiant-secret-key");
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:9100";
+
+function resolveApiKey(): string {
+  if (process.env.API_KEY) return process.env.API_KEY;
+
+  if (process.env.NODE_ENV === "production") {
+    console.error("FATAL: API_KEY environment variable is required in production");
+    process.exit(1);
+  }
+
+  // Dev-only fallback: self-sign with shared secret
+  return jwt.sign({ owner: "MCP Test Runner" }, process.env.JWT_SECRET || "radiant-secret-key");
+}
+
+const API_KEY = resolveApiKey();
 
 const server = new Server(
   {
@@ -145,6 +158,7 @@ async function apiRequest(endpoint: string, method: string, body?: any) {
     method,
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`,
     },
   };
   if (body) {

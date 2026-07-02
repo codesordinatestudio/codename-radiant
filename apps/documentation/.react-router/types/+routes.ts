@@ -14,6 +14,12 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/api": {
+    params: {};
+  };
+  "/mcp": {
+    params: {};
+  };
   "/docs/:runtime/:slug?": {
     params: {
       "runtime": string;
@@ -25,11 +31,19 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/docs/:runtime/:slug?";
+    page: "/" | "/api" | "/mcp" | "/docs/:runtime/:slug?";
   };
   "routes/home.tsx": {
     id: "routes/home";
     page: "/";
+  };
+  "routes/api.tsx": {
+    id: "routes/api";
+    page: "/api";
+  };
+  "routes/mcp.tsx": {
+    id: "routes/mcp";
+    page: "/mcp";
   };
   "routes/doc.tsx": {
     id: "routes/doc";
@@ -40,5 +54,7 @@ type RouteFiles = {
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/home": typeof import("./app/routes/home.tsx");
+  "routes/api": typeof import("./app/routes/api.tsx");
+  "routes/mcp": typeof import("./app/routes/mcp.tsx");
   "routes/doc": typeof import("./app/routes/doc.tsx");
 };

@@ -78,6 +78,35 @@ export function AppHeader({ title, runtime }: AppHeaderProps) {
               </li>
             </ul>
           </div>
+          <div className="flex items-center gap-4 border-l border-base-content/10 pl-4 ml-2">
+            <NavLink
+              to="/api"
+              className={({ isActive }) =>
+                `text-xs font-semibold tracking-wider uppercase transition-colors ${
+                  isActive ? "text-primary" : "text-base-content/50 hover:text-primary"
+                }`
+              }
+            >
+              API
+            </NavLink>
+            <NavLink
+              to="/mcp"
+              className={({ isActive }) =>
+                `text-xs font-semibold tracking-wider uppercase transition-colors ${
+                  isActive ? "text-primary" : "text-base-content/50 hover:text-primary"
+                }`
+              }
+            >
+              MCP
+            </NavLink>
+            <a
+              href="#"
+              className="text-xs font-semibold tracking-wider uppercase text-base-content/30 cursor-not-allowed hover:text-base-content/30"
+              title="Coming Soon"
+            >
+              Playground
+            </a>
+          </div>
         </div>
       </div>
     </header>
