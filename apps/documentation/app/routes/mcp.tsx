@@ -382,7 +382,7 @@ export default function McpReference() {
                             Arguments
                           </span>
                         </div>
-                        <div className="overflow-x-auto flex-grow">
+                        <div className="overflow-x-auto grow">
                           <table className="w-full text-sm text-left">
                             <thead className="bg-base-content/5 text-base-content/60 border-b border-base-content/10">
                               <tr>
@@ -415,7 +415,7 @@ export default function McpReference() {
                             Expected LLM Request
                           </span>
                         </div>
-                        <div className="p-4 overflow-x-auto flex-grow">
+                        <div className="p-4 overflow-x-auto grow">
                           <pre className="text-xs font-mono text-base-content">
                             <code>{tool.agentRequest}</code>
                           </pre>
